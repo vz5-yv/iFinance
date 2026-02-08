@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cài đặt - iFinance</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <style>
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: var(--dark-bg);
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 8px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 12px 16px;
+            color: var(--dark-text-secondary);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 32px;
+            background: var(--dark-bg-secondary);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="logo">iFinance</div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('dashboard')">📊 Dashboard</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('transactions')">💳 Giao dịch</a>
+                </li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('pending')">⏳ Chờ xác nhận</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('reports')">📈 Báo cáo</a></li>
+                <li class="nav-item"><a href="#" class="nav-link active" onclick="loadPage('settings')">⚙️ Cài đặt</a>
+                </li>
+                <li class="nav-item" style="margin-top: 32px;"><a href="#" class="nav-link" onclick="logout()">🚪 Đăng
+                        xuất</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <h1 style="margin-bottom: 32px;">Cài đặt</h1>
+
+            <div class="card">
+                <div class="card-header">Quản lý danh mục</div>
+                <button class="btn-primary" onclick="openAddCategoryModal()" style="margin-bottom: 16px;">➕ Thêm danh
+                    mục</button>
+                <div id="categoriesList"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Thông tin hệ thống</div>
+                <p><strong>Phiên bản:</strong> 1.0.0</p>
+                <p><strong>Vai trò:</strong> <span id="userRole"></span></p>
+                <p><strong>Tên đăng nhập:</strong> <span id="username"></span></p>
+            </div>
+        </main>
+    </div>
+
+    <div id="addCategoryModal" class="modal">
+        <div class="modal-content">
+            <h2>Thêm danh mục mới</h2>
+            <form id="addCategoryForm">
+                <div class="form-group"><label>Tên danh mục</label><input type="text" id="categoryName" required></div>
+                <div class="form-group"><label>Phạm vi</label>
+                    <select id="categoryScope" required>
+                        <option value="personal">Cá nhân</option>
+                        <option value="business">Công việc</option>
+                        <option value="both">Cả hai</option>
+                    </select>
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn-primary">Lưu</button>
+                    <button type="button" class="btn-secondary" onclick="closeAddCategoryModal()">Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        const user = getCurrentUser();
+        if (!user) window.electronAPI.navigate('login');
+        document.getElementById('username').textContent = user.username;
+        document.getElementById('userRole').textContent = user.role;
+
+        function loadPage(page) { window.electronAPI.navigate(page); }
+        function logout() { api.clearToken(); window.electronAPI.navigate('login'); }
+
+        async function loadCategories() {
+            try {
+                const data = await api.getCategories();
+                displayCategories(data.categories);
+            } catch (error) {
+                showToast('Lỗi tải danh mục', 'danger');
+            }
+        }
+
+        function displayCategories(categories) {
+            const container = document.getElementById('categoriesList');
+            container.innerHTML = `<table><thead><tr><th>Tên</th><th>Phạm vi</th></tr></thead><tbody>${categories.map(c => `
+        <tr>
+          <td>${c.name}</td>
+          <td><span class="badge badge-info">${c.scope === 'personal' ? 'Cá nhân' : c.scope === 'business' ? 'Công việc' : 'Cả hai'}</span></td>
+        </tr>
+      `).join('')}</tbody></table>`;
+        }
+
+        function openAddCategoryModal() {
+            document.getElementById('addCategoryModal').classList.add('active');
+        }
+
+        function closeAddCategoryModal() {
+            document.getElementById('addCategoryModal').classList.remove('active');
+            document.getElementById('addCategoryForm').reset();
+        }
+
+        document.getElementById('addCategoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('categoryName').value,
+                scope: document.getElementById('categoryScope').value
+            };
+
+            try {
+                await api.createCategory(data);
+                showToast('Đã thêm danh mục', 'success');
+                closeAddCategoryModal();
+                loadCategories();
+            } catch (error) {
+                showToast('Lỗi thêm danh mục', 'danger');
+            }
+        });
+
+        loadCategories();
+    </script>
+</body>
+
+</html>

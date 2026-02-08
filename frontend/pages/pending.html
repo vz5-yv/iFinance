@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chờ xác nhận - iFinance</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <style>
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: var(--dark-bg);
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 8px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 12px 16px;
+            color: var(--dark-text-secondary);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 32px;
+            background: var(--dark-bg-secondary);
+        }
+
+        .pending-item {
+            background: var(--dark-bg);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .confidence {
+            font-weight: 600;
+            color: var(--warning-color);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="logo">iFinance</div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('dashboard')">📊 Dashboard</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('transactions')">💳 Giao dịch</a>
+                </li>
+                <li class="nav-item"><a href="#" class="nav-link active" onclick="loadPage('pending')">⏳ Chờ xác
+                        nhận</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('reports')">📈 Báo cáo</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('settings')">⚙️ Cài đặt</a></li>
+                <li class="nav-item" style="margin-top: 32px;"><a href="#" class="nav-link" onclick="logout()">🚪 Đăng
+                        xuất</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <h1 style="margin-bottom: 32px;">Giao dịch chờ xác nhận</h1>
+            <div id="pendingList"></div>
+        </main>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        const user = getCurrentUser();
+        if (!user) window.electronAPI.navigate('login');
+        function loadPage(page) { window.electronAPI.navigate(page); }
+        function logout() { api.clearToken(); window.electronAPI.navigate('login'); }
+
+        async function loadPending() {
+            try {
+                const data = await api.getTransactions({ status: 'pending' });
+                displayPending(data.transactions);
+            } catch (error) {
+                showToast('Lỗi tải danh sách', 'danger');
+            }
+        }
+
+        function displayPending(transactions) {
+            const container = document.getElementById('pendingList');
+            if (transactions.length === 0) {
+                container.innerHTML = '<div class="alert alert-success">✓ Không có giao dịch chờ xác nhận</div>';
+                return;
+            }
+
+            container.innerHTML = transactions.map(t => `
+        <div class="pending-item">
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div style="flex: 1;">
+              <h3>${t.description}</h3>
+              <p style="color: var(--dark-text-secondary); margin: 8px 0;">
+                ${formatDate(t.date)} - ${formatCurrency(t.amount)} - ${t.type === 'income' ? 'Thu' : 'Chi'}
+              </p>
+              <p>
+                <strong>Gợi ý:</strong> ${t.suggested_category_name} 
+                <span class="confidence">(Độ tin cậy: ${(t.confidence_score * 100).toFixed(0)}%)</span>
+              </p>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-success" onclick="confirmTransaction(${t.id})">✓ Xác nhận</button>
+              <button class="btn-danger" onclick="rejectTransaction(${t.id})">✗ Từ chối</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+        }
+
+        async function confirmTransaction(id) {
+            try {
+                await api.confirmTransaction(id);
+                showToast('Đã xác nhận giao dịch', 'success');
+                loadPending();
+            } catch (error) {
+                showToast('Lỗi xác nhận giao dịch', 'danger');
+            }
+        }
+
+        async function rejectTransaction(id) {
+            try {
+                await api.updateTransaction(id, { status: 'confirmed', category_id: null });
+                showToast('Đã từ chối gợi ý', 'success');
+                loadPending();
+            } catch (error) {
+                showToast('Lỗi xử lý', 'danger');
+            }
+        }
+
+        loadPending();
+    </script>
+</body>
+
+</html>

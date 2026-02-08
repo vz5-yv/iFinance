@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giao dịch - iFinance</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <style>
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: var(--dark-bg);
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 8px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 12px 16px;
+            color: var(--dark-text-secondary);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 32px;
+            background: var(--dark-bg-secondary);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="logo">iFinance</div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('dashboard')">📊 Dashboard</a></li>
+                <li class="nav-item"><a href="#" class="nav-link active" onclick="loadPage('transactions')">💳 Giao
+                        dịch</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('pending')">⏳ Chờ xác nhận</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('reports')">📈 Báo cáo</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('settings')">⚙️ Cài đặt</a></li>
+                <li class="nav-item" style="margin-top: 32px;"><a href="#" class="nav-link" onclick="logout()">🚪 Đăng
+                        xuất</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="header">
+                <h1>Quản lý giao dịch</h1>
+                <button class="btn-primary" onclick="openAddModal()">➕ Thêm giao dịch</button>
+            </div>
+
+            <div class="card">
+                <div class="filters">
+                    <input type="text" id="searchInput" placeholder="Tìm kiếm...">
+                    <select id="typeFilter">
+                        <option value="">Tất cả loại</option>
+                        <option value="income">Thu</option>
+                        <option value="expense">Chi</option>
+                    </select>
+                    <select id="scopeFilter">
+                        <option value="">Tất cả phạm vi</option>
+                        <option value="personal">Cá nhân</option>
+                        <option value="business">Công việc</option>
+                    </select>
+                    <button class="btn-secondary" onclick="applyFilters()">Lọc</button>
+                </div>
+
+                <div id="transactionsList"></div>
+            </div>
+        </main>
+    </div>
+
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <h2>Thêm giao dịch mới</h2>
+            <form id="addForm">
+                <div class="form-group"><label>Ngày</label><input type="date" id="date" required></div>
+                <div class="form-group"><label>Mô tả</label><input type="text" id="description" required></div>
+                <div class="form-group"><label>Số tiền</label><input type="number" id="amount" step="1000" required>
+                </div>
+                <div class="form-group"><label>Loại</label><select id="type" required>
+                        <option value="income">Thu</option>
+                        <option value="expense">Chi</option>
+                    </select></div>
+                <div class="form-group"><label>Phạm vi</label><select id="scope" required>
+                        <option value="personal">Cá nhân</option>
+                        <option value="business">Công việc</option>
+                    </select></div>
+                <div class="form-group"><label>Danh mục</label><select id="category_id"></select></div>
+                <div class="form-group"><label>Nguồn</label><input type="text" id="source"></div>
+                <div class="actions"><button type="submit" class="btn-primary">Lưu</button><button type="button"
+                        class="btn-secondary" onclick="closeAddModal()">Hủy</button></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        const user = getCurrentUser();
+        if (!user) window.electronAPI.navigate('login');
+        function loadPage(page) { window.electronAPI.navigate(page); }
+        function logout() { api.clearToken(); window.electronAPI.navigate('login'); }
+
+        let categories = [];
+        async function loadCategories() {
+            const data = await api.getCategories();
+            categories = data.categories;
+            const select = document.getElementById('category_id');
+            select.innerHTML = '<option value="">-- Không chọn --</option>' + categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+
+        async function loadTransactions() {
+            try {
+                const data = await api.getTransactions();
+                displayTransactions(data.transactions);
+            } catch (error) {
+                showToast('Lỗi tải danh sách giao dịch', 'danger');
+            }
+        }
+
+        function displayTransactions(transactions) {
+            const container = document.getElementById('transactionsList');
+            if (transactions.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--dark-text-secondary);">Chưa có giao dịch</p>';
+                return;
+            }
+
+            container.innerHTML = `<table><thead><tr><th>Ngày</th><th>Mô tả</th><th>Danh mục</th><th>Số tiền</th><th>Loại</th><th>Phạm vi</th><th>Thao tác</th></tr></thead><tbody>${transactions.map(t => `
+        <tr>
+          <td>${formatDate(t.date)}</td>
+          <td>${t.description}</td>
+          <td>${t.category_name || '-'}</td>
+          <td style="color: ${t.type === 'income' ? 'var(--success-color)' : 'var(--danger-color)'}">${formatCurrency(t.amount)}</td>
+          <td><span class="badge ${t.type === 'income' ? 'badge-success' : 'badge-warning'}">${t.type === 'income' ? 'Thu' : 'Chi'}</span></td>
+          <td>${t.scope === 'personal' ? 'Cá nhân' : 'Công việc'}</td>
+          <td><button class="btn-danger" onclick="deleteTransaction(${t.id})">Xóa</button></td>
+        </tr>
+      `).join('')}</tbody></table>`;
+        }
+
+        async function deleteTransaction(id) {
+            if (!confirm('Bạn có chắc muốn xóa giao dịch này?')) return;
+            try {
+                await api.deleteTransaction(id);
+                showToast('Đã xóa giao dịch', 'success');
+                loadTransactions();
+            } catch (error) {
+                showToast('Lỗi xóa giao dịch', 'danger');
+            }
+        }
+
+        function openAddModal() {
+            document.getElementById('addModal').classList.add('active');
+            document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.remove('active');
+            document.getElementById('addForm').reset();
+        }
+
+        document.getElementById('addForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                date: document.getElementById('date').value,
+                description: document.getElementById('description').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                type: document.getElementById('type').value,
+                scope: document.getElementById('scope').value,
+                category_id: document.getElementById('category_id').value || null,
+                source: document.getElementById('source').value || null
+            };
+
+            try {
+                await api.createTransaction(data);
+                showToast('Đã thêm giao dịch', 'success');
+                closeAddModal();
+                loadTransactions();
+            } catch (error) {
+                showToast('Lỗi thêm giao dịch', 'danger');
+            }
+        });
+
+        async function applyFilters() {
+            const search = document.getElementById('searchInput').value;
+            const type = document.getElementById('typeFilter').value;
+            const scope = document.getElementById('scopeFilter').value;
+            const data = await api.getTransactions({ search, type, scope });
+            displayTransactions(data.transactions);
+        }
+
+        loadCategories();
+        loadTransactions();
+    </script>
+</body>
+
+</html>

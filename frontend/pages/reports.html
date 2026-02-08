@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo - iFinance</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <style>
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: var(--dark-bg);
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 8px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 12px 16px;
+            color: var(--dark-text-secondary);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 32px;
+            background: var(--dark-bg-secondary);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="logo">iFinance</div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('dashboard')">📊 Dashboard</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('transactions')">💳 Giao dịch</a>
+                </li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('pending')">⏳ Chờ xác nhận</a></li>
+                <li class="nav-item"><a href="#" class="nav-link active" onclick="loadPage('reports')">📈 Báo cáo</a>
+                </li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('settings')">⚙️ Cài đặt</a></li>
+                <li class="nav-item" style="margin-top: 32px;"><a href="#" class="nav-link" onclick="logout()">🚪 Đăng
+                        xuất</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <h1 style="margin-bottom: 32px;">Báo cáo và thống kê</h1>
+
+            <div class="card">
+                <div class="card-header">Khoảng thời gian</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 200px; gap: 16px;">
+                    <input type="date" id="startDate">
+                    <input type="date" id="endDate">
+                    <button class="btn-primary" onclick="loadReports()">Xem báo cáo</button>
+                </div>
+            </div>
+
+            <div class="stats-grid" id="statsGrid"></div>
+
+            <div class="card">
+                <div class="card-header">Thống kê theo danh mục</div>
+                <div id="categoryStats"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        const user = getCurrentUser();
+        if (!user) window.electronAPI.navigate('login');
+        function loadPage(page) { window.electronAPI.navigate(page); }
+        function logout() { api.clearToken(); window.electronAPI.navigate('login'); }
+
+        const today = new Date().toISOString().split('T')[0];
+        const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        document.getElementById('startDate').value = monthAgo;
+        document.getElementById('endDate').value = today;
+
+        async function loadReports() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            try {
+                const data = await api.getStats({ start_date: startDate, end_date: endDate });
+                displayStats(data);
+            } catch (error) {
+                showToast('Lỗi tải báo cáo', 'danger');
+            }
+        }
+
+        function displayStats(data) {
+            const statsGrid = document.getElementById('statsGrid');
+            const income = data.stats.find(s => s.type === 'income')?.total || 0;
+            const expense = data.stats.find(s => s.type === 'expense')?.total || 0;
+            const balance = income - expense;
+
+            statsGrid.innerHTML = `
+        <div class="stat-card income">
+          <div class="stat-label">Tổng thu</div>
+          <div class="stat-value">${formatCurrency(income)}</div>
+        </div>
+        <div class="stat-card expense">
+          <div class="stat-label">Tổng chi</div>
+          <div class="stat-value">${formatCurrency(expense)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Số dư</div>
+          <div class="stat-value">${formatCurrency(balance)}</div>
+        </div>
+      `;
+
+            const categoryContainer = document.getElementById('categoryStats');
+            if (data.categoryStats.length === 0) {
+                categoryContainer.innerHTML = '<p style="text-align: center; color: var(--dark-text-secondary);">Chưa có dữ liệu</p>';
+                return;
+            }
+
+            categoryContainer.innerHTML = `<table><thead><tr><th>Danh mục</th><th>Loại</th><th>Tổng tiền</th><th>Số giao dịch</th><th>Trung bình</th></tr></thead><tbody>${data.categoryStats.map(c => `
+        <tr>
+          <td>${c.name}</td>
+          <td><span class="badge ${c.type === 'income' ? 'badge-success' : 'badge-warning'}">${c.type === 'income' ? 'Thu' : 'Chi'}</span></td>
+          <td>${formatCurrency(c.total)}</td>
+          <td>${c.count}</td>
+          <td>${formatCurrency(c.average)}</td>
+        </tr>
+      `).join('')}</tbody></table>`;
+        }
+
+        loadReports();
+    </script>
+</body>
+
+</html>
