@@ -2,249 +2,541 @@
 <html lang="vi">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - iFinance</title>
-    <link rel="stylesheet" href="../css/main.css">
-    <style>
-        .layout {
-            display: flex;
-            min-height: 100vh;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - iFinance</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .activity-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
 
-        .sidebar {
-            width: 250px;
-            background: var(--dark-bg);
-            padding: 20px;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-        }
+    .activity-row:last-child {
+      border-bottom: none;
+    }
 
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 32px;
-            text-align: center;
-        }
+    .activity-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
 
-        .nav-menu {
-            list-style: none;
-        }
+    .activity-dot.income {
+      background: var(--income);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    }
 
-        .nav-item {
-            margin-bottom: 8px;
-        }
+    .activity-dot.expense {
+      background: var(--expense);
+      box-shadow: 0 0 8px rgba(244, 63, 94, 0.5);
+    }
 
-        .nav-link {
-            display: block;
-            padding: 12px 16px;
-            color: var(--dark-text-secondary);
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
+    .activity-info {
+      flex: 1;
+      min-width: 0;
+    }
 
-        .nav-link:hover,
-        .nav-link.active {
-            background: var(--primary-color);
-            color: white;
-        }
+    .activity-desc {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
-        .main-content {
-            flex: 1;
-            padding: 32px;
-            background: var(--dark-bg-secondary);
-        }
+    .activity-date {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 32px;
-        }
+    .activity-amount {
+      font-size: 14px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+    .activity-amount.income {
+      color: var(--income);
+    }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 24px;
-            margin-bottom: 32px;
-        }
+    .activity-amount.expense {
+      color: var(--expense);
+    }
 
-        .chart-container {
-            background: var(--dark-bg);
-            padding: 24px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-        }
-    </style>
+    .loader-sm {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top: 2px solid var(--income);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .ai-pulse {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--income);
+      background: rgba(16, 185, 129, 0.15);
+      padding: 4px 10px;
+      border-radius: 20px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .ai-pulse.active {
+      opacity: 1;
+      display: inline-flex !important;
+    }
+
+    .ai-pulse-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--income);
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      }
+
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+  </style>
 </head>
 
 <body>
-    <div class="layout">
-        <aside class="sidebar">
-            <div class="logo">iFinance</div>
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="#" class="nav-link active" onclick="loadPage('dashboard')">📊 Dashboard</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="loadPage('transactions')">💳 Giao dịch</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="loadPage('pending')">⏳ Chờ xác nhận</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="loadPage('reports')">📈 Báo cáo</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="loadPage('settings')">⚙️ Cài đặt</a>
-                </li>
-                <li class="nav-item" style="margin-top: 32px;">
-                    <a href="#" class="nav-link" onclick="logout()">🚪 Đăng xuất</a>
-                </li>
-            </ul>
-        </aside>
-
-        <main class="main-content">
-            <div class="header">
-                <h1>Dashboard</h1>
-                <div class="user-info">
-                    <span id="username"></span>
-                    <span class="badge badge-info" id="userRole"></span>
-                </div>
-            </div>
-
-            <div class="stats-grid" id="statsGrid"></div>
-
-            <div class="grid grid-2">
-                <div class="card">
-                    <div class="card-header">Giao dịch gần đây</div>
-                    <div id="recentTransactions"></div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">Cảnh báo bất thường</div>
-                    <div id="anomalies"></div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <script src="../js/api.js"></script>
-    <script>
-        const user = getCurrentUser();
-        if (!user) {
-            window.electronAPI.navigate('login');
-        }
-
-        document.getElementById('username').textContent = user.username;
-        document.getElementById('userRole').textContent = user.role;
-
-        function loadPage(page) {
-            window.electronAPI.navigate(page);
-        }
-
-        function logout() {
-            api.clearToken();
-            window.electronAPI.navigate('login');
-        }
-
-        async function loadDashboard() {
-            try {
-                const endDate = new Date().toISOString().split('T')[0];
-                const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-                const statsData = await api.getStats({ start_date: startDate, end_date: endDate });
-                const recentData = await api.getTransactions({ limit: 5 });
-                const anomaliesData = await api.getAnomalies({ start_date: startDate, end_date: endDate });
-
-                displayStats(statsData);
-                displayRecentTransactions(recentData.transactions);
-                displayAnomalies(anomaliesData.anomalies);
-            } catch (error) {
-                console.error('Error loading dashboard:', error);
-                showToast('Lỗi tải dữ liệu dashboard', 'danger');
-            }
-        }
-
-        function displayStats(data) {
-            const statsGrid = document.getElementById('statsGrid');
-
-            const income = data.stats.find(s => s.type === 'income')?.total || 0;
-            const expense = data.stats.find(s => s.type === 'expense')?.total || 0;
-            const balance = income - expense;
-
-            statsGrid.innerHTML = `
-        <div class="stat-card income">
-          <div class="stat-label">Tổng thu</div>
-          <div class="stat-value">${formatCurrency(income)}</div>
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-icon"><img src="../assets/icon.png" alt="logo"></div>
+        <span class="logo-text">iFinance</span>
+      </div>
+      <div class="nav-section-label">Menu chính</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a class="nav-link active" href="#" onclick="nav('dashboard'); return false;">
+            <span class="nav-icon">📊</span> Dashboard
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" onclick="nav('transactions'); return false;">
+            <span class="nav-icon">💳</span> Giao dịch
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" onclick="nav('pending'); return false;">
+            <span class="nav-icon">⏳</span> Chờ xác nhận
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" onclick="nav('reports'); return false;">
+            <span class="nav-icon">📈</span> Báo cáo
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" onclick="nav('ai-studio'); return false;">
+            <span class="nav-icon">🤖</span> AI Studio
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" onclick="nav('settings'); return false;">
+            <span class="nav-icon">⚙️</span> Cài đặt
+          </a>
+        </li>
+      </ul>
+      <div class="sidebar-footer">
+        <div class="user-chip" style="margin-bottom:10px; justify-content:center;">
+          <div class="avatar" id="avatarText">A</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;" id="sidebarUsername">admin</div>
+            <div style="font-size:11px;color:var(--text-muted);" id="sidebarRole">Admin</div>
+          </div>
         </div>
-        <div class="stat-card expense">
-          <div class="stat-label">Tổng chi</div>
-          <div class="stat-value">${formatCurrency(expense)}</div>
+        <button class="btn btn-secondary" style="width:100%;gap:8px;" onclick="logout()">
+          🚪 Đăng xuất
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+      <div class="page-header" style="align-items: flex-start; gap: 20px;">
+        <div style="flex:1;">
+          <div class="page-title">Dashboard</div>
+          <div class="page-subtitle" id="dateRangeDisplay">Dữ liệu công ty · Đang tải...</div>
+
+          <!-- Date Presets -->
+          <div style="display:flex; gap:8px; margin-top:12px;">
+            <button class="btn btn-secondary btn-sm" onclick="setPreset('thisMonth')">Tháng này</button>
+            <button class="btn btn-secondary btn-sm" onclick="setPreset('lastMonth')">Tháng trước</button>
+            <button class="btn btn-secondary btn-sm" onclick="setPreset('q1_2026')">Quý 1 2026</button>
+            <button class="btn btn-secondary btn-sm" onclick="setPreset('year2025')">Năm 2025</button>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Số dư</div>
-          <div class="stat-value">${formatCurrency(balance)}</div>
+
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
+          <div
+            style="display:flex; gap:10px; align-items:center; background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:10px; border:1px solid var(--border);">
+            <div style="display:flex; flex-direction:column;">
+              <label
+                style="font-size:10px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:2px;">Từ
+                ngày</label>
+              <input type="date" id="startDateInput"
+                style="background:transparent; border:none; color:var(--text-primary); outline:none; font-size:13px;"
+                onchange="handleDateChange()">
+            </div>
+            <div style="width:1px; height:24px; background:var(--border);"></div>
+            <div style="display:flex; flex-direction:column;">
+              <label
+                style="font-size:10px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-bottom:2px;">Đến
+                ngày</label>
+              <input type="date" id="endDateInput"
+                style="background:transparent; border:none; color:var(--text-primary); outline:none; font-size:13px;"
+                onchange="handleDateChange()">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="nav('transactions')" style="gap:7px; width:100%;">
+            ＋ Thêm giao dịch
+          </button>
+        </div>
+      </div>
+
+      <div class="page-body">
+        <!-- Stats -->
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card income">
+            <div class="stat-icon">💰</div>
+            <div class="stat-label">Tổng thu</div>
+            <div class="stat-value" id="totalIncome">—</div>
+          </div>
+          <div class="stat-card expense">
+            <div class="stat-icon">💸</div>
+            <div class="stat-label">Tổng chi</div>
+            <div class="stat-value" id="totalExpense">—</div>
+          </div>
+          <div class="stat-card balance">
+            <div class="stat-icon">⚖️</div>
+            <div class="stat-label">Số dư</div>
+            <div class="stat-value" id="balance">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <div class="stat-label">Giao dịch</div>
+            <div class="stat-value" id="txCount">—</div>
+          </div>
+        </div>
+
+        <!-- Bottom grid -->
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Giao dịch gần đây</span>
+              <button class="btn btn-secondary btn-sm" onclick="nav('transactions')">Xem tất cả</button>
+            </div>
+            <div id="recentTransactions">
+              <div class="loader"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header" style="justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="card-title">⚠️ Cảnh báo bất thường</span>
+                <div id="aiAnalysisStatus" class="ai-pulse" style="display: none;">
+                  <div class="ai-pulse-dot"></div>
+                  <span>AI đang phân tích...</span>
+                </div>
+              </div>
+              <button id="reanalyzeBtn" class="btn btn-secondary btn-sm" onclick="forceReanalyze()"
+                title="Yêu cầu AI phân tích lại">
+                <span class="btn-text">🔄 Phân tích lại</span>
+              </button>
+            </div>
+            <div id="anomalies" style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+              <div class="loader"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+    // Setup WebSocket for realtime updates
+    const socket = io('http://localhost:3000');
+    socket.on('transaction_updated', (data) => {
+      console.log('Realtime update received:', data);
+      showToast('🔄 Dữ liệu vừa được cập nhật!', 'info');
+      loadDashboard();
+    });
+
+    // Auth check
+    const user = getCurrentUser();
+    
+    // Browser fallback for Electron API
+    if (!window.electronAPI) {
+      window.electronAPI = {
+        navigate: (page) => {
+          window.location.href = page + '.html';
+        }
+      };
+    }
+
+    if (!user) window.electronAPI.navigate('login');
+
+    // Set user info
+    document.getElementById('sidebarUsername').textContent = user.username;
+    document.getElementById('sidebarRole').textContent = user.role;
+    document.getElementById('avatarText').textContent = user.username[0].toUpperCase();
+
+    function nav(page) { window.electronAPI.navigate(page); }
+    function logout() { api.clearToken(); window.electronAPI.navigate('login'); }
+
+    // Date state
+    let startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    let endDate = new Date().toISOString().split('T')[0];
+
+    // Initialize inputs
+    document.getElementById('startDateInput').value = startDate;
+    document.getElementById('endDateInput').value = endDate;
+
+    function handleDateChange() {
+      startDate = document.getElementById('startDateInput').value;
+      endDate = document.getElementById('endDateInput').value;
+      loadDashboard();
+    }
+
+    function setPreset(p) {
+      const now = new Date();
+      let y = now.getFullYear();
+      let m = now.getMonth(); // 0-11
+
+      if (p === 'thisMonth') {
+        startDate = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+        endDate = now.toISOString().split('T')[0];
+      } else if (p === 'lastMonth') {
+        const firstDayPrev = new Date(y, m - 1, 1);
+        const lastDayPrev = new Date(y, m, 0); // 0th day of current month is last day of prev
+        startDate = firstDayPrev.toISOString().split('T')[0];
+        endDate = lastDayPrev.toISOString().split('T')[0];
+      } else if (p === 'q1_2026') {
+        startDate = '2026-01-01';
+        endDate = '2026-03-31';
+      } else if (p === 'year2025') {
+        startDate = '2025-01-01';
+        endDate = '2025-12-31';
+      }
+
+      document.getElementById('startDateInput').value = startDate;
+      document.getElementById('endDateInput').value = endDate;
+      loadDashboard();
+    }
+
+    async function loadDashboard() {
+      document.getElementById('dateRangeDisplay').textContent = `${formatDate(startDate)} – ${formatDate(endDate)}`;
+
+      // Show loaders
+      document.getElementById('recentTransactions').innerHTML = '<div class="loader"></div>';
+      document.getElementById('anomalies').innerHTML = '<div class="loader"></div>';
+
+      try {
+        const [statsData, recentData, anomaliesData] = await Promise.all([
+          api.getStats({ start_date: startDate, end_date: endDate }),
+          api.getTransactions({ limit: 12, start_date: startDate, end_date: endDate }),
+          api.getAnomalies({ start_date: startDate, end_date: endDate })
+        ]);
+        displayStats(statsData);
+        displayRecentTransactions(recentData.transactions);
+        displayAnomalies(anomaliesData.anomalies);
+      } catch (err) {
+        console.error(err);
+        showToast('Lỗi tải dữ liệu dashboard', 'danger');
+      }
+    }
+
+    async function forceReanalyze() {
+      const btn = document.getElementById('reanalyzeBtn');
+      const originalText = btn.innerHTML;
+      const statusEl = document.getElementById('aiAnalysisStatus');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader-sm"></span> Đang quét...';
+      statusEl.style.display = 'inline-flex';
+      statusEl.classList.add('active');
+
+      try {
+        const res = await api.request('/ai/analyze-all', { method: 'POST' });
+        console.log('[AI] Bulk analysis result:', res);
+        showToast(`✅ Đã phân tích xong ${res.count} giao dịch!`, 'success');
+
+        // Reload anomalies immediately
+        const anomaliesData = await api.getAnomalies({ start_date: startDate, end_date: endDate });
+        displayAnomalies(anomaliesData.anomalies);
+      } catch (e) {
+        console.error('[AI] Bulk analyze error:', e);
+        showToast('Lỗi khi phân tích: ' + (e.message || 'Unknown'), 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        statusEl.classList.remove('active');
+        statusEl.style.display = 'none';
+      }
+    }
+
+    function animateValue(el, endValue, duration = 600) {
+      const startTime = performance.now();
+      const startValue = 0;
+      const isNegative = endValue < 0;
+      const absEnd = Math.abs(endValue);
+
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        const currentValue = startValue + (absEnd - startValue) * eased;
+        
+        // Use formatCurrency directly with the signed value for correct formatting
+        const valueToFormat = isNegative ? -Math.floor(currentValue) : Math.floor(currentValue);
+        el.textContent = formatCurrency(valueToFormat);
+        
+        if (progress < 1) requestAnimationFrame(update);
+        else el.textContent = formatCurrency(endValue);
+      }
+      requestAnimationFrame(update);
+    }
+
+    function displayStats(data) {
+      const stats = data.stats || [];
+      const income = stats.reduce((s, r) => r.type === 'income' && r.scope === 'business' ? s + r.total : s, 0);
+      const expense = stats.reduce((s, r) => r.type === 'expense' && r.scope === 'business' ? s + r.total : s, 0);
+      const incomeAll = stats.reduce((s, r) => r.type === 'income' ? s + r.total : s, 0);
+      const expenseAll = stats.reduce((s, r) => r.type === 'expense' ? s + r.total : s, 0);
+      const count = stats.reduce((s, r) => s + r.count, 0);
+      const balance = income - expense;
+
+      animateValue(document.getElementById('totalIncome'), income);
+      animateValue(document.getElementById('totalExpense'), expense);
+      document.getElementById('txCount').textContent = count;
+
+      const balEl = document.getElementById('balance');
+      animateValue(balEl, balance);
+      balEl.style.color = balance >= 0 ? 'var(--income)' : 'var(--expense)';
+
+      const incomePersonal = incomeAll - income;
+      const expensePersonal = expenseAll - expense;
+      if (incomePersonal > 0 || expensePersonal > 0) {
+        const subtitle = document.getElementById('dateRangeDisplay');
+        const originalText = `${formatDate(startDate)} – ${formatDate(endDate)}`;
+        subtitle.innerHTML = `${originalText} | Công ty · <span style="color:var(--text-muted);font-size:11px;">Cá nhân: +${formatCurrency(incomePersonal)} / -${formatCurrency(expensePersonal)}</span>`;
+      }
+    }
+
+    function displayRecentTransactions(transactions) {
+      const el = document.getElementById('recentTransactions');
+      if (!transactions || transactions.length === 0) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">Chưa có giao dịch nào</div></div>';
+        return;
+      }
+      el.innerHTML = transactions.map(t => {
+        const isPending = t.status === 'pending';
+        const pendingBadge = isPending ? ' <span style="font-size:10px; background:rgba(245,158,11,0.15); color:var(--warning); padding:1px 6px; border-radius:4px; margin-left:4px; font-weight:600;">(Chờ duyệt)</span>' : '';
+        
+        return `
+        <div class="activity-row" style="${isPending ? 'opacity: 0.85;' : ''}">
+          <div class="activity-dot ${t.type}" style="${isPending ? 'background: var(--warning); box-shadow: 0 0 8px rgba(245,158,11,0.5);' : ''}"></div>
+          <div class="activity-info">
+            <div class="activity-desc" title="${t.description}">${t.description}${pendingBadge}</div>
+            <div class="activity-date">${formatDate(t.date)} · ${t.category_name || 'Chưa phân loại'}</div>
+          </div>
+          <div class="activity-amount ${t.type}">${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}</div>
         </div>
       `;
-        }
+      }).join('');
+    }
 
-        function displayRecentTransactions(transactions) {
-            const container = document.getElementById('recentTransactions');
+    function displayAnomalies(anomalies) {
+      const el = document.getElementById('anomalies');
+      const filtered = anomalies.filter(a =>
+        a.ai_explanation && (a.ai_explanation.startsWith('Cảnh báo') || a.ai_explanation.startsWith('Tăng trưởng'))
+      );
 
-            if (transactions.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: var(--dark-text-secondary);">Chưa có giao dịch</p>';
-                return;
-            }
+      if (filtered.length === 0) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-text" style="color:var(--income)">Mọi thứ đang trong tầm kiểm soát!</div></div>';
+        return;
+      }
 
-            container.innerHTML = `
-        <table>
-          <tbody>
-            ${transactions.map(t => `
-              <tr>
-                <td>${formatDate(t.date)}</td>
-                <td>${t.description}</td>
-                <td style="color: ${t.type === 'income' ? 'var(--success-color)' : 'var(--danger-color)'}">
-                  ${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-        }
+      el.innerHTML = filtered.map(a => {
+        const isGrowth = a.ai_explanation.startsWith('Tăng trưởng');
+        const alertClass = isGrowth ? 'alert-success' : 'alert-warning';
+        const labelColor = isGrowth ? 'var(--income)' : 'var(--expense)';
+        const icon = isGrowth ? '📈' : '💡';
 
-        function displayAnomalies(anomalies) {
-            const container = document.getElementById('anomalies');
-
-            if (anomalies.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: var(--success-color);">✓ Không có giao dịch bất thường</p>';
-                return;
-            }
-
-            container.innerHTML = `
-        <div>
-          ${anomalies.slice(0, 5).map(a => `
-            <div class="alert alert-warning" style="margin-bottom: 12px;">
+        return `
+          <div class="alert ${alertClass}" style="margin-bottom:8px;font-size:12.5px; border-left: 3px solid ${labelColor};">
+            <div>
               <strong>${formatDate(a.date)}</strong>: ${a.description}<br>
-              <small>Số tiền: ${formatCurrency(a.amount)} - ${a.anomaly_reason}</small>
+              <span style="opacity:0.85">${formatCurrency(a.amount)}<br>
+              <strong style="color:${labelColor}">${icon} Phân tích AI:</strong> ${a.ai_explanation}</span>
             </div>
-          `).join('')}
-        </div>
-      `;
-        }
+          </div>
+        `;
+      }).join('');
+    }
 
-        loadDashboard();
-    </script>
+    function showToast(message, type = 'info') {
+      const c = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.innerHTML = message;
+      c.appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+
+    // Initial Load - Analyze once, then show dashboard
+    (async () => {
+      try {
+        await api.post('/ai/analyze-all', {});
+      } catch (e) { }
+      loadDashboard();
+    })();
+  </script>
 </body>
 
 </html>

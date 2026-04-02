@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Studio - iFinance</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .ai-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .spec-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .spec-item:last-child {
+      border-bottom: none;
+    }
+
+    .spec-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .spec-value {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .status-ok {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-warn {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .setup-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(255, 255, 255, 0.02);
+      padding: 16px;
+      border-radius: 12px;
+      margin-top: 12px;
+    }
+
+    .setup-progress-wrap {
+      flex: 1;
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* ===== AI CHAT PANEL ===== */
+    .chat-panel {
+      display: flex;
+      flex-direction: column;
+      height: 420px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      scroll-behavior: smooth;
+    }
+
+    .chat-bubble {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 13.5px;
+      line-height: 1.6;
+      animation: bubbleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes bubbleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9) translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .chat-bubble.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-bubble.ai {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-bubble.ai .bubble-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #818cf8;
+      margin-bottom: 6px;
+    }
+
+    .chat-bubble.error {
+      align-self: flex-start;
+      background: rgba(244, 63, 94, 0.1);
+      border: 1px solid rgba(244, 63, 94, 0.2);
+      color: #fb7185;
+    }
+
+    .chat-input-bar {
+      display: flex;
+      gap: 10px;
+      padding: 14px 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .chat-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: var(--text-primary);
+      font-size: 13.5px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input:focus {
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    .chat-input::placeholder {
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    .typing-dot {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+      padding: 4px 0;
+    }
+
+    .typing-dot span {
+      width: 6px;
+      height: 6px;
+      background: #818cf8;
+      border-radius: 50%;
+      animation: dotBounce 1.2s ease-in-out infinite;
+    }
+
+    .typing-dot span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes dotBounce {
+
+      0%,
+      80%,
+      100% {
+        transform: scale(0.6);
+        opacity: 0.4;
+      }
+
+      40% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .chat-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      padding: 0 20px 14px;
+    }
+
+    .chat-suggestion {
+      padding: 6px 12px;
+      border-radius: 100px;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      background: rgba(99, 102, 241, 0.08);
+      color: #a5b4fc;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .chat-suggestion:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: rgba(99, 102, 241, 0.6);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <aside class="sidebar" id="sidebarNode"></aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div>
+          <div class="page-title">AI Studio</div>
+          <div class="page-subtitle">Hệ thống AI nội bộ - Tự động hoá tài chính</div>
+        </div>
+      </div>
+
+      <div class="page-body">
+        <div class="grid grid-2">
+          <!-- System Config -->
+          <div class="ai-card">
+            <h3 style="margin-top:0; margin-bottom:20px; display:flex; align-items:center; gap:8px;">
+              🖥️ Cấu hình hệ thống
+            </h3>
+            <div id="specsList">
+              <div class="loader"></div>
+            </div>
+          </div>
+
+          <!-- Setup & Start -->
+          <div class="ai-card">
+            <h3 style="margin-top:0; margin-bottom:20px;">🚀 Cài đặt & Vận hành</h3>
+
+            <div class="setup-item">
+              <div style="font-size: 24px;">🔧</div>
+              <div class="setup-progress-wrap">
+                <div style="display:flex; justify-content:space-between; font-size:13px;">
+                  <span>Llama-server (Inference Engine)</span>
+                  <span id="engineStatusText">Chưa có</span>
+                </div>
+                <div class="progress-bar">
+                  <div id="engineProgress" class="progress-fill"></div>
+                </div>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="btnDownloadEngine" onclick="downloadEngine()">Tải về</button>
+            </div>
+
+            <div class="setup-item">
+              <div style="font-size: 24px;">🧠</div>
+              <div class="setup-progress-wrap">
+                <div style="display:flex; justify-content:space-between; font-size:13px;">
+                  <span>Qwen2.5-1.5B (AI Model)</span>
+                  <span id="modelStatusText">Chưa có</span>
+                </div>
+                <div class="progress-bar">
+                  <div id="modelProgress" class="progress-fill"></div>
+                </div>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="btnDownloadModel" onclick="downloadModel()">Tải về</button>
+            </div>
+
+            <div style="margin-top: 24px; display:flex; gap:12px;">
+              <button class="btn btn-primary" id="btnStartServer" onclick="startServer()" disabled style="flex:1">▶️
+                Khởi động AI</button>
+              <button class="btn btn-danger" id="btnStopServer" onclick="stopServer()" disabled>⏹️ Dừng</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Chat Panel -->
+        <div class="ai-card" style="margin-top:0">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+            <div>
+              <h3 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">🤖 Trợ lý Kế toán AI
+                <span id="chatEngineState" style="font-size:11px; font-weight:400; color:var(--text-muted);">• đang kiểm
+                  tra...</span>
+              </h3>
+              <p style="margin:6px 0 0; font-size:12px; color:var(--text-muted);">Hỏi bất kỳ điều gì về thu chi, dòng
+                tiền, báo cáo...</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="clearChat()">🗑 Xoá lịch sử</button>
+          </div>
+          <div class="chat-panel">
+            <div class="chat-messages" id="chatMessages">
+              <div class="chat-bubble ai">
+                <div class="bubble-label">iFinance AI</div>
+                Xin chào! Tôi là trợ lý kế toán thông minh của iFinance. Tôi có thể truy xuất dữ liệu tài chính thực tế
+                và trả lời câu hỏi của bạn ngay lập tức. Hãy hỏi tôi bất cứ điều gì! 💬
+              </div>
+            </div>
+            <div class="chat-suggestions" id="chatSuggestions">
+              <button class="chat-suggestion" onclick="sendSuggestion(this)">Tổng thu tháng này?</button>
+              <button class="chat-suggestion" onclick="sendSuggestion(this)">Danh mục chi nhiều nhất?</button>
+              <button class="chat-suggestion" onclick="sendSuggestion(this)">Tiền điện tháng 3 có bất thường
+                không?</button>
+              <button class="chat-suggestion" onclick="sendSuggestion(this)">So sánh thu chi Q1 2026</button>
+              <button class="chat-suggestion" onclick="sendSuggestion(this)">Còn bao nhiêu GD chờ duyệt?</button>
+            </div>
+            <div class="chat-input-bar">
+              <textarea class="chat-input" id="chatInput" rows="1"
+                placeholder="Nhập câu hỏi tài chính... (Enter để gửi, Shift+Enter xuống dòng)"></textarea>
+              <button class="btn btn-primary" id="btnSend" onclick="sendChat()" style="height:42px;padding:0 18px;">Gửi
+                ↵</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+    const socket = io('http://localhost:3000');
+
+    // Sidebar injection
+    const user = getCurrentUser();
+    if (!user) window.electronAPI.navigate('login');
+
+    const sidebarHtml = `
+      <div class="logo"><div class="logo-icon"><img src="../assets/icon.png" alt="logo"></div><span class="logo-text">iFinance</span></div>
+      <div class="nav-section-label">Menu chính</div>
+      <ul class="nav-menu">
+        <li class="nav-item"><a class="nav-link" onclick="nav('dashboard')"><span class="nav-icon">📊</span>Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="nav('transactions')"><span class="nav-icon">💳</span>Giao dịch</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="nav('pending')"><span class="nav-icon">⏳</span>Chờ xác nhận</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="nav('reports')"><span class="nav-icon">📈</span>Báo cáo</a></li>
+        <li class="nav-item"><a class="nav-link active" onclick="nav('ai-studio')"><span class="nav-icon">🤖</span>AI Studio</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="nav('settings')"><span class="nav-icon">⚙️</span>Cài đặt</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <div class="user-chip" style="margin-bottom:10px;justify-content:center;">
+          <div class="avatar">${user.username[0].toUpperCase()}</div>
+          <div><div style="font-size:13px;font-weight:600;">${user.username}</div><div style="font-size:11px;color:var(--text-muted);">${user.role}</div></div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;" onclick="logout()">🚪 Đăng xuất</button>
+      </div>
+    `;
+    document.getElementById('sidebarNode').innerHTML = sidebarHtml;
+
+    function nav(p) { window.electronAPI.navigate(p); }
+    function logout() { api.clearToken(); window.electronAPI.navigate('login'); }
+
+    // Logic
+    async function loadSpecs() {
+      const data = await api.getAiSpecs();
+      if (!data.specs) return;
+      const s = data.specs;
+      document.getElementById('specsList').innerHTML = `
+        <div class="spec-item"><div class="spec-label">📟 GPU</div><div class="spec-value">${s.gpu}</div> <span class="status-badge ${s.isGpuHealthy ? 'status-ok' : 'status-warn'}">${s.isGpuHealthy ? 'Sẵn sàng' : 'Yếu'}</span></div>
+        <div class="spec-item"><div class="spec-label">💾 VRAM</div><div class="spec-value">${s.vram}</div></div>
+        <div class="spec-item"><div class="spec-label">⚡ RAM</div><div class="spec-value">${s.ram}</div> <span class="status-badge ${s.isRamHealthy ? 'status-ok' : 'status-warn'}">${s.isRamHealthy ? 'Tốt' : 'Yếu'}</span></div>
+        <div class="spec-item"><div class="spec-label">📁 Trống</div><div class="spec-value">${s.freeDisk}</div> <span class="status-badge ${s.isDiskHealthy ? 'status-ok' : 'status-warn'}">${s.isDiskHealthy ? 'Đạt' : 'Cần thêm'}</span></div>
+      `;
+    }
+
+    async function checkStatus() {
+      const status = await api.getAiStatus();
+      document.getElementById('engineStatusText').textContent = status.engineExists ? '✅ Đã tải' : '❌ Chưa có';
+      document.getElementById('modelStatusText').textContent = status.modelExists ? '✅ Đã tải' : '❌ Chưa có';
+
+      document.getElementById('btnDownloadEngine').disabled = status.engineExists;
+      document.getElementById('btnDownloadModel').disabled = status.modelExists;
+
+      document.getElementById('btnStartServer').disabled = !(status.engineExists && status.modelExists) || status.isRunning;
+      document.getElementById('btnStopServer').disabled = !status.isRunning;
+
+      if (status.engineExists) document.getElementById('engineProgress').style.width = '100%';
+      if (status.modelExists) document.getElementById('modelProgress').style.width = '100%';
+      updateChatEngineState(status.isRunning);
+    }
+
+    async function downloadEngine() {
+      await api.setupAiEngine();
+      showToast('Đang bắt đầu tải Engine...', 'info');
+    }
+    async function downloadModel() {
+      await api.setupAiModel();
+      showToast('Đang bắt đầu tải Model (1.1GB)...', 'info');
+    }
+    async function startServer() {
+      await api.startAiEngine();
+      showToast('Đang khởi động AI Engine...', 'success');
+      document.getElementById('consoleLogs').innerHTML = 'Starting...<br>';
+    }
+    async function stopServer() {
+      await api.stopAiEngine();
+      showToast('Đã dừng AI Engine', 'warning');
+    }
+
+    // Socket listeners
+    socket.on('ai_download_progress', (data) => {
+      const bar = document.getElementById(`${data.eventName}Progress`);
+      const text = document.getElementById(`${data.eventName}StatusText`);
+      bar.style.width = `${data.progress}%`;
+      text.textContent = `⚡ ${data.progress}%`;
+
+      if (data.progress == 100) {
+        setTimeout(checkStatus, 1000);
+      }
+    });
+
+    socket.on('ai_engine_log', () => { });
+
+    socket.on('ai_engine_status', (status) => {
+      checkStatus();
+      updateChatEngineState(status?.isRunning);
+    });
+
+    // ===== AI CHAT LOGIC =====
+    let chatHistory = JSON.parse(localStorage.getItem('ai_chat_history') || '[]');
+
+    function saveChatHistory() {
+      localStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
+    }
+
+    function loadInitialHistory() {
+      if (chatHistory.length > 0) {
+        document.getElementById('chatSuggestions').style.display = 'none';
+        chatHistory.forEach(m => {
+          if (m.role === 'user') appendBubble('user', m.content);
+          else if (m.role === 'assistant') appendBubble('ai', m.content);
+        });
+      }
+    }
+
+    function updateChatEngineState(running) {
+      const el = document.getElementById('chatEngineState');
+      if (!el) return;
+      if (running) {
+        el.innerHTML = '• <span style="color:var(--income); font-weight:600;">Đã sẵn sàng</span>';
+      } else {
+        el.innerHTML = '• <span style="color:var(--warning)">AI Engine đang tắt</span>';
+      }
+    }
+
+    function appendBubble(role, text) {
+      const msgs = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = `chat-bubble ${role}`;
+      if (role === 'ai') {
+        div.innerHTML = `<div class="bubble-label">iFinance AI</div>${text.replace(/\n/g, '<br>')}`;
+      } else if (role === 'error') {
+        div.innerHTML = `⚠️ ${text}`;
+      } else {
+        div.textContent = text;
+      }
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+      return div;
+    }
+
+    function showTyping() {
+      const msgs = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = 'chat-bubble ai';
+      div.id = 'typingIndicator';
+      div.innerHTML = `<div class="bubble-label">iFinance AI</div><div class="typing-dot"><span></span><span></span><span></span></div>`;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+      return div;
+    }
+
+    function hideTyping() {
+      const el = document.getElementById('typingIndicator');
+      if (el) el.remove();
+    }
+
+    async function sendChat() { // Renamed from sendMessage to sendChat to match existing onclick
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = '';
+      input.style.height = 'auto';
+      document.getElementById('chatSuggestions').style.display = 'none';
+      appendBubble('user', text);
+
+      const typing = showTyping(); // Use existing showTyping
+      const btn = document.getElementById('btnSend');
+      btn.disabled = true;
+      input.disabled = true;
+
+      try {
+        const response = await api.aiChat(text, chatHistory);
+        typing.remove(); // Remove the typing indicator
+
+        if (response && response.reply) { // Changed from response.answer to response.reply
+          appendBubble('ai', response.reply); // Use existing appendBubble
+          chatHistory.push({ role: 'user', content: text });
+          chatHistory.push({ role: 'assistant', content: response.reply });
+          if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+          saveChatHistory();
+        } else {
+          appendBubble('error', 'Xin lỗi, tôi gặp lỗi khi xử lý câu hỏi này.'); // Use existing appendBubble for error
+        }
+      } catch (e) {
+        typing.remove(); // Remove the typing indicator
+        const errMsg = e.message?.includes('503') || e.message?.includes('chưa được khởi động')
+          ? 'AI Engine chưa được bật. Vui lòng bấm ▶️ Khởi động AI ở trên trước.'
+          : (e.message || 'Có lỗi xảy ra, vui lòng thử lại.');
+        appendBubble('error', errMsg);
+      } finally {
+        btn.disabled = false;
+        input.disabled = false;
+        input.focus();
+      }
+    }
+
+    function sendSuggestion(btn) {
+      document.getElementById('chatInput').value = btn.textContent;
+      sendChat();
+    }
+
+    function clearChat() {
+      chatHistory = [];
+      localStorage.removeItem('ai_chat_history');
+      const msgs = document.getElementById('chatMessages');
+      msgs.innerHTML = `<div class="chat-bubble ai"><div class="bubble-label">iFinance AI</div>Lịch sử đã được xoá. Tôi sẵn sàng trả lời câu hỏi mới của bạn! 🔄</div>`;
+      document.getElementById('chatSuggestions').style.display = 'flex';
+    }
+
+    // Auto-resize textarea
+    document.getElementById('chatInput').addEventListener('input', function () {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    document.getElementById('chatInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChat();
+      }
+    });
+
+    function showToast(m, t = 'info') {
+      const c = document.getElementById('toastContainer');
+      const div = document.createElement('div');
+      div.className = `toast toast-${t}`;
+      div.textContent = m;
+      c.appendChild(div);
+      setTimeout(() => div.remove(), 3500);
+    }
+
+    loadSpecs();
+    (async () => {
+      const status = await api.getAiStatus();
+      updateChatEngineState(status.isRunning);
+      checkStatus();
+      loadInitialHistory(); // Load saved chat history
+    })();
+  </script>
+</body>
+
+</html>

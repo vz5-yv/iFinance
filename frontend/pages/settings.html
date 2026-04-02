@@ -2,177 +2,596 @@
 <html lang="vi">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cài đặt - iFinance</title>
-    <link rel="stylesheet" href="../css/main.css">
-    <style>
-        .layout {
-            display: flex;
-            min-height: 100vh;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cài đặt - iFinance</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .settings-section {
+      margin-bottom: 24px;
+    }
 
-        .sidebar {
-            width: 250px;
-            background: var(--dark-bg);
-            padding: 20px;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-        }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
 
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 32px;
-            text-align: center;
-        }
+    .info-row:last-child {
+      border-bottom: none;
+    }
 
-        .nav-menu {
-            list-style: none;
-        }
+    .info-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
 
-        .nav-item {
-            margin-bottom: 8px;
-        }
-
-        .nav-link {
-            display: block;
-            padding: 12px 16px;
-            color: var(--dark-text-secondary);
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 32px;
-            background: var(--dark-bg-secondary);
-        }
-    </style>
+    .info-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+  </style>
 </head>
 
 <body>
-    <div class="layout">
-        <aside class="sidebar">
-            <div class="logo">iFinance</div>
-            <ul class="nav-menu">
-                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('dashboard')">📊 Dashboard</a></li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('transactions')">💳 Giao dịch</a>
-                </li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('pending')">⏳ Chờ xác nhận</a></li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('reports')">📈 Báo cáo</a></li>
-                <li class="nav-item"><a href="#" class="nav-link active" onclick="loadPage('settings')">⚙️ Cài đặt</a>
-                </li>
-                <li class="nav-item" style="margin-top: 32px;"><a href="#" class="nav-link" onclick="logout()">🚪 Đăng
-                        xuất</a></li>
-            </ul>
-        </aside>
-
-        <main class="main-content">
-            <h1 style="margin-bottom: 32px;">Cài đặt</h1>
-
-            <div class="card">
-                <div class="card-header">Quản lý danh mục</div>
-                <button class="btn-primary" onclick="openAddCategoryModal()" style="margin-bottom: 16px;">➕ Thêm danh
-                    mục</button>
-                <div id="categoriesList"></div>
-            </div>
-
-            <div class="card">
-                <div class="card-header">Thông tin hệ thống</div>
-                <p><strong>Phiên bản:</strong> 1.0.0</p>
-                <p><strong>Vai trò:</strong> <span id="userRole"></span></p>
-                <p><strong>Tên đăng nhập:</strong> <span id="username"></span></p>
-            </div>
-        </main>
-    </div>
-
-    <div id="addCategoryModal" class="modal">
-        <div class="modal-content">
-            <h2>Thêm danh mục mới</h2>
-            <form id="addCategoryForm">
-                <div class="form-group"><label>Tên danh mục</label><input type="text" id="categoryName" required></div>
-                <div class="form-group"><label>Phạm vi</label>
-                    <select id="categoryScope" required>
-                        <option value="personal">Cá nhân</option>
-                        <option value="business">Công việc</option>
-                        <option value="both">Cả hai</option>
-                    </select>
-                </div>
-                <div class="actions">
-                    <button type="submit" class="btn-primary">Lưu</button>
-                    <button type="button" class="btn-secondary" onclick="closeAddCategoryModal()">Hủy</button>
-                </div>
-            </form>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-icon"><img src="../assets/icon.png" alt="logo"></div>
+        <span class="logo-text">iFinance</span>
+      </div>
+      <div class="nav-section-label">Menu chính</div>
+      <ul class="nav-menu">
+        <li class="nav-item"><a class="nav-link" onclick="nav('dashboard')"><span
+              class="nav-icon">📊</span>Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="nav('transactions')"><span class="nav-icon">💳</span>Giao
+            dịch</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="nav('pending')"><span class="nav-icon">⏳</span>Chờ xác
+            nhận</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="nav('reports')"><span class="nav-icon">📈</span>Báo cáo</a>
+        </li>
+        <li class="nav-item"><a class="nav-link" onclick="nav('ai-studio')"><span class="nav-icon">🤖</span>AI
+            Studio</a>
+        </li>
+        <li class="nav-item"><a class="nav-link active" onclick="nav('settings')"><span class="nav-icon">⚙️</span>Cài
+            đặt</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <div class="user-chip" style="margin-bottom:10px;justify-content:center;">
+          <div class="avatar" id="avatarText">A</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;" id="sidebarUsername"></div>
+            <div style="font-size:11px;color:var(--text-muted);" id="sidebarRole"></div>
+          </div>
         </div>
+        <button class="btn btn-secondary" style="width:100%;" onclick="logout()">🚪 Đăng xuất</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Cài đặt</div>
+          <div class="page-subtitle">Quản lý danh mục và thông tin hệ thống</div>
+        </div>
+      </div>
+      <div class="page-body">
+        <!-- Tabs -->
+        <div
+          style="display:flex;gap:6px;margin-bottom:22px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--r-md);padding:5px;width:fit-content;">
+          <button class="tab-btn active" id="tabCat" onclick="setTab('cat')">🏷️ Danh mục</button>
+          <button class="tab-btn" id="tabRule" onclick="setTab('rule')">🤖 Rules phân loại</button>
+          <button class="tab-btn" id="tabImport" onclick="setTab('import')">📥 Import CSV</button>
+          <button class="tab-btn" id="tabSys" onclick="setTab('sys')">⚙️ Hệ thống</button>
+        </div>
+
+        <!-- Categories Tab -->
+        <div id="viewCat" style="display:block;">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Quản lý danh mục thu chi</span>
+              <button class="btn btn-primary btn-sm" onclick="openModal()">＋ Thêm danh mục</button>
+            </div>
+            <div id="categoriesList">
+              <div class="loader"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rules Tab -->
+        <div id="viewRule" style="display:none;">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Từ khóa phân loại tự động (AI)</span>
+              <button class="btn btn-primary btn-sm" onclick="openRuleModal()">＋ Thêm Rule</button>
+            </div>
+            <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">
+              Khi giao dịch mới khớp với từ khóa, hệ thống sẽ tự động gán danh mục tương ứng.
+            </p>
+            <div id="rulesList">
+              <div class="loader"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Import CSV Tab -->
+        <div id="viewImport" style="display:none;">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Nhập dữ liệu từ CSV</span></div>
+            <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">
+              Dán dữ liệu CSV (từ Excel / Sao kê ngân hàng) vào đây.<br>
+              Cột bắt buộc: <strong>Ngày (YYYY-MM-DD), Mô tả, Số tiền, Loại (income/expense), Phạm vi
+                (business/personal)</strong>
+            </p>
+            <textarea id="csvInput" rows="10"
+              placeholder="2026-03-24, Thanh toán tiền điện, 500000, expense, business&#10;..."
+              style="width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; background:var(--bg-muted); color:var(--text-primary); font-family:monospace; margin-bottom:16px;"></textarea>
+            <button class="btn btn-primary" onclick="processCSV()" id="btnProcessImport">Tiến hành Import</button>
+          </div>
+          <div id="importResult" style="margin-top:20px;"></div>
+        </div>
+
+        <!-- System Tab -->
+        <div id="viewSys" style="display:none;">
+          <div class="grid grid-2">
+            <div class="card">
+              <div class="card-header"><span class="card-title">ℹ️ Thông tin hệ thống</span></div>
+              <div class="info-row"><span class="info-label">Tên đăng nhập</span><span class="info-value"
+                  id="infoUsername">—</span></div>
+              <div class="info-row"><span class="info-label">Vai trò</span><span class="info-value"><span
+                    class="badge badge-info" id="infoRole">—</span></span></div>
+              <div class="info-row"><span class="info-label">Phiên bản App</span><span class="info-value">v1.2.1</span>
+              </div>
+              <div class="info-row"><span class="info-label">Electron</span><span class="info-value"
+                  id="electronVersion">—</span></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><span class="card-title">🤖 Cấu hình AI Studio</span></div>
+              <p style="color:var(--text-secondary);font-size:13px;margin-bottom:14px;">
+                Chọn thư mục lưu trữ bộ cài AI và Model (Mặc định: Thư mục ứng dụng)
+              </p>
+              <div class="form-group">
+                <div style="display:flex; gap:10px;">
+                  <input type="text" id="aiStoragePath" readonly placeholder="Mặc định hệ thống"
+                    style="flex:1; cursor:default; background:rgba(255,255,255,0.02)">
+                  <button class="btn btn-secondary btn-sm" onclick="chooseAiFolder()">Chọn thư mục</button>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="saveAiSettings()">Lưu cấu
+                hình</button>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><span class="card-title">🤖 Tích hợp Telegram</span></div>
+              <p style="color:var(--text-secondary);font-size:13px;margin-bottom:14px;">
+                Kết nối với Bot để gửi giao dịch nhanh chóng qua tin nhắn.
+              </p>
+
+              <div style="margin-bottom: 20px;">
+                <a href="https://t.me/ifinace_noti_bot" target="_blank" class="btn btn-secondary btn-sm"
+                  style="width:100%; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px;">
+                  🚀 Mở Bot @ifinace_noti_bot
+                </a>
+              </div>
+
+              <div class="form-group">
+                <label style="display:block; margin-bottom:8px; font-size:13px;">Telegram Chat ID</label>
+                <input type="text" id="telegramChatId" placeholder="VD: 123456789">
+              </div>
+
+              <p style="color:var(--text-muted); font-size:12px; margin-top:8px; line-height:1.4;">
+                💡 Cách lấy Chat ID: Mở bot <a href="https://t.me/Getmyid_Work_Bot" target="_blank"
+                  style="color:var(--primary); text-decoration:none; font-weight:600;">@Getmyid_Work_Bot</a> và nhấn
+                Start.
+              </p>
+
+              <button class="btn btn-primary btn-sm" style="margin-top:10px; width:100%;"
+                onclick="saveTelegramSettings()">Lưu Chat ID</button>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><span class="card-title">🔐 Bảo mật</span></div>
+              <p style="color:var(--text-secondary);font-size:13px;margin-bottom:14px;">Đổi mật khẩu tài khoản hiện
+                tại
+              </p>
+              <button class="btn btn-secondary btn-sm" onclick="openPasswordModal()">Đổi mật khẩu</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Category Modal -->
+  <div id="addCatModal" class="modal">
+    <div class="modal-content" style="max-width:400px;">
+      <div class="modal-header">
+        <div class="modal-title">🏷️ Thêm danh mục</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <form id="addCatForm">
+        <div class="form-group">
+          <label>Tên danh mục</label>
+          <input type="text" id="categoryName" required placeholder="VD: Tiền thuê nhà">
+        </div>
+        <div class="form-group">
+          <label>Phạm vi</label>
+          <select id="categoryScope" required>
+            <option value="business">Công việc</option>
+            <option value="both">Cả hai</option>
+            <option value="personal">Cá nhân</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">Hủy</button>
+          <button type="submit" class="btn btn-primary">Thêm danh mục</button>
+        </div>
+      </form>
     </div>
+  </div>
 
-    <script src="../js/api.js"></script>
-    <script>
-        const user = getCurrentUser();
-        if (!user) window.electronAPI.navigate('login');
-        document.getElementById('username').textContent = user.username;
-        document.getElementById('userRole').textContent = user.role;
+  <!-- Add Rule Modal -->
+  <div id="addRuleModal" class="modal">
+    <div class="modal-content" style="max-width:400px;">
+      <div class="modal-header">
+        <div class="modal-title" id="ruleModalTitle">🤖 Thêm Rule Phân Loại</div>
+        <button class="modal-close" onclick="closeRuleModal()">✕</button>
+      </div>
+      <form id="ruleForm">
+        <input type="hidden" id="ruleId">
+        <div class="form-group">
+          <label>Từ khóa (Keyword)</label>
+          <input type="text" id="ruleKeyword" required placeholder="VD: tien dien, cap quang, agribank...">
+        </div>
+        <div class="form-group">
+          <label>Gán vào Danh mục</label>
+          <select id="ruleCategory" required></select>
+        </div>
+        <div class="grid grid-2" style="gap:14px;">
+          <div class="form-group">
+            <label>Phạm vi áp dụng</label>
+            <select id="ruleScope" required>
+              <option value="business">Công việc</option>
+              <option value="both">Cả hai</option>
+              <option value="personal">Cá nhân</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Độ ưu tiên</label>
+            <input type="number" id="rulePriority" value="1" min="1" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeRuleModal()">Hủy</button>
+          <button type="submit" class="btn btn-primary" id="ruleSubmitBtn">Lưu Rule</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-        function loadPage(page) { window.electronAPI.navigate(page); }
-        function logout() { api.clearToken(); window.electronAPI.navigate('login'); }
+  <!-- Change Password Modal -->
+  <div id="passwordModal" class="modal">
+    <div class="modal-content" style="max-width:400px;">
+      <div class="modal-header">
+        <div class="modal-title">🔐 Đổi mật khẩu</div>
+        <button class="modal-close" onclick="closePasswordModal()">✕</button>
+      </div>
+      <form id="passwordForm">
+        <div class="form-group">
+          <label>Mật khẩu hiện tại</label>
+          <input type="password" id="oldPassword" required>
+        </div>
+        <div class="form-group">
+          <label>Mật khẩu mới</label>
+          <input type="password" id="newPassword" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label>Xác nhận mật khẩu mới</label>
+          <input type="password" id="confirmPassword" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closePasswordModal()">Hủy</button>
+          <button type="submit" class="btn btn-primary">Cập nhật mật khẩu</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-        async function loadCategories() {
-            try {
-                const data = await api.getCategories();
-                displayCategories(data.categories);
-            } catch (error) {
-                showToast('Lỗi tải danh mục', 'danger');
-            }
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="../js/api.js"></script>
+  <script>
+    let categories = [];
+    const user = getCurrentUser();
+    if (!user) window.electronAPI.navigate('login');
+
+    document.getElementById('sidebarUsername').textContent = user.username;
+    document.getElementById('sidebarRole').textContent = user.role;
+    document.getElementById('avatarText').textContent = user.username[0].toUpperCase();
+    document.getElementById('infoUsername').textContent = user.username;
+    document.getElementById('infoRole').textContent = user.role;
+    if (window.electronAPI && window.electronAPI.version) {
+      document.getElementById('electronVersion').textContent = window.electronAPI.version;
+    }
+
+    function nav(page) { window.electronAPI.navigate(page); }
+    function logout() { api.clearToken(); window.electronAPI.navigate('login'); }
+
+    // Tabs
+    function setTab(tab) {
+      ['cat', 'rule', 'import', 'sys'].forEach(t => {
+        document.getElementById('tab' + t[0].toUpperCase() + t.slice(1)).classList.remove('active');
+        document.getElementById('view' + t[0].toUpperCase() + t.slice(1)).style.display = 'none';
+      });
+      document.getElementById('tab' + tab[0].toUpperCase() + tab.slice(1)).classList.add('active');
+      document.getElementById('view' + tab[0].toUpperCase() + tab.slice(1)).style.display = 'block';
+    }
+
+    function scopeBadge(s) {
+      if (s === 'personal') return '<span class="badge badge-personal">Cá nhân</span>';
+      if (s === 'business') return '<span class="badge badge-business">Công việc</span>';
+      return '<span class="badge badge-both">Cả hai</span>';
+    }
+
+    async function loadCategories() {
+      console.log('[Settings] Loading categories...');
+      try {
+        const data = await api.getCategories();
+        console.log('[Settings] Categories data received:', data);
+        categories = data.categories || [];
+        if (categories.length === 0) {
+          document.getElementById('categoriesList').innerHTML = '<div class="empty-state">Chưa có danh mục nào</div>';
+          return;
         }
-
-        function displayCategories(categories) {
-            const container = document.getElementById('categoriesList');
-            container.innerHTML = `<table><thead><tr><th>Tên</th><th>Phạm vi</th></tr></thead><tbody>${categories.map(c => `
+        const tbody = categories.map((c, i) => `
         <tr>
-          <td>${c.name}</td>
-          <td><span class="badge badge-info">${c.scope === 'personal' ? 'Cá nhân' : c.scope === 'business' ? 'Công việc' : 'Cả hai'}</span></td>
-        </tr>
-      `).join('')}</tbody></table>`;
-        }
+          <td style="color:var(--text-muted);font-size:12px;">${i + 1}</td>
+          <td style="font-weight:500;">${c.name}</td>
+          <td>${scopeBadge(c.scope)}</td>
+          <td style="font-weight:600;color:var(--text-muted)">${c.transaction_count || 0}</td>
+        </tr>`).join('');
+        document.getElementById('categoriesList').innerHTML = `<div class="table-wrapper"><table><thead><tr><th>#</th><th>Tên</th><th>Phạm vi</th><th>Số giao dịch</th></tr></thead><tbody>${tbody}</tbody></table></div>`;
 
-        function openAddCategoryModal() {
-            document.getElementById('addCategoryModal').classList.add('active');
-        }
+        // Update rule category select
+        document.getElementById('ruleCategory').innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      } catch (e) {
+        console.error('[Settings] Load categories error:', e);
+        showToast('Lỗi tải danh mục: ' + e.message, 'danger');
+      }
+    }
 
-        function closeAddCategoryModal() {
-            document.getElementById('addCategoryModal').classList.remove('active');
-            document.getElementById('addCategoryForm').reset();
-        }
+    // category modal
+    function openModal() { document.getElementById('addCatModal').classList.add('active'); }
+    function closeModal() { document.getElementById('addCatModal').classList.remove('active'); document.getElementById('addCatForm').reset(); }
 
-        document.getElementById('addCategoryForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const data = {
-                name: document.getElementById('categoryName').value,
-                scope: document.getElementById('categoryScope').value
-            };
-
-            try {
-                await api.createCategory(data);
-                showToast('Đã thêm danh mục', 'success');
-                closeAddCategoryModal();
-                loadCategories();
-            } catch (error) {
-                showToast('Lỗi thêm danh mục', 'danger');
-            }
+    document.getElementById('addCatForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await api.createCategory({
+          name: document.getElementById('categoryName').value,
+          scope: document.getElementById('categoryScope').value
         });
-
+        showToast('✅ Đã thêm danh mục', 'success');
+        closeModal();
         loadCategories();
-    </script>
+      } catch (err) { showToast('Lỗi: ' + err.message, 'danger'); }
+    });
+
+    // ===== RULES =====
+    async function loadRules() {
+      console.log('[Settings] Loading rules...');
+      try {
+        const data = await api.getRules();
+        console.log('[Settings] Rules data received:', data);
+        const rules = data.rules || [];
+        if (!rules.length) {
+          document.getElementById('rulesList').innerHTML = `<div class="empty-state"><div class="empty-state-icon">🤖</div><div class="empty-state-text">Chưa có Rule nào</div></div>`;
+          return;
+        }
+        const tbody = rules.map(r => `
+        <tr>
+          <td style="font-weight:600;font-family:monospace;color:var(--primary)">${r.keyword}</td>
+          <td>${r.category_name}</td>
+          <td>${scopeBadge(r.scope)}</td>
+          <td>${r.priority}</td>
+          <td style="text-align:center">
+            <button class="btn btn-secondary btn-sm" onclick="editRule(${r.id}, '${r.keyword}', ${r.category_id}, '${r.scope}', ${r.priority})">✏️</button>
+            <button class="btn btn-secondary btn-sm" onclick="deleteRule(${r.id})" style="color:var(--expense)">🗑️</button>
+          </td>
+        </tr>`).join('');
+        document.getElementById('rulesList').innerHTML = `<div class="table-wrapper"><table><thead><tr><th>Từ khóa</th><th>Danh mục</th><th>Phạm vi</th><th>Ưu tiên</th><th style="text-align:center">Thao tác</th></tr></thead><tbody>${tbody}</tbody></table></div>`;
+      } catch (e) {
+        console.error('[Settings] Load rules error:', e);
+        showToast('Lỗi tải Rules: ' + e.message, 'danger');
+      }
+    }
+
+    function openRuleModal() {
+      document.getElementById('addRuleModal').classList.add('active');
+      document.getElementById('ruleModalTitle').textContent = '🤖 Thêm Rule Phân Loại';
+      document.getElementById('ruleId').value = '';
+      document.getElementById('ruleForm').reset();
+    }
+    function closeRuleModal() { document.getElementById('addRuleModal').classList.remove('active'); }
+
+    function editRule(id, kw, cat, scope, prio) {
+      document.getElementById('addRuleModal').classList.add('active');
+      document.getElementById('ruleModalTitle').textContent = '✏️ Sửa Rule';
+      document.getElementById('ruleId').value = id;
+      document.getElementById('ruleKeyword').value = kw;
+      document.getElementById('ruleCategory').value = cat;
+      document.getElementById('ruleScope').value = scope;
+      document.getElementById('rulePriority').value = prio;
+    }
+
+    async function deleteRule(id) {
+      if (!confirm('Xóa Rule này?')) return;
+      try {
+        await api.deleteRule(id);
+        showToast('Đã xóa', 'success');
+        loadRules();
+      } catch (e) { showToast('Lỗi', 'danger'); }
+    }
+
+    document.getElementById('ruleForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('ruleId').value;
+      const data = {
+        keyword: document.getElementById('ruleKeyword').value,
+        category_id: document.getElementById('ruleCategory').value,
+        scope: document.getElementById('ruleScope').value,
+        priority: document.getElementById('rulePriority').value
+      };
+      try {
+        if (id) await api.updateRule(id, data);
+        else await api.createRule(data);
+        showToast('✅ Đã lưu Rule', 'success');
+        closeRuleModal();
+        loadRules();
+      } catch (err) { showToast('Lỗi: ' + err.message, 'danger'); }
+    });
+
+    // ===== CSV IMPORT =====
+    async function processCSV() {
+      const raw = document.getElementById('csvInput').value.trim();
+      if (!raw) { showToast('Hãy dán dữ liệu CSV', 'warning'); return; }
+
+      const lines = raw.split('\\n');
+      const transactions = [];
+
+      for (const line of lines) {
+        if (!line.trim() || line.startsWith('Ngày')) continue; // Skip empty/header
+        const parts = line.split(',').map(s => s.trim());
+        if (parts.length < 5) continue;
+
+        transactions.push({
+          date: parts[0],
+          description: parts[1],
+          amount: parts[2],
+          type: parts[3], // income / expense
+          scope: parts[4] // business / personal
+        });
+      }
+
+      if (transactions.length === 0) {
+        showToast('Không tìm thấy dòng dữ liệu hợp lệ', 'warning');
+        return;
+      }
+
+      const btn = document.getElementById('btnProcessImport');
+      btn.disabled = true; btn.textContent = 'Đang xử lý...';
+      try {
+        const res = await api.importTransactions(transactions);
+        document.getElementById('importResult').innerHTML = `
+        <div class="alert alert-success">✅ Đã import thành công: ${res.success} dòng.</div>
+        ${res.failed > 0 ? `<div class="alert alert-danger">❌ Lỗi ${res.failed} dòng:<br>${res.errors.join('<br>')}</div>` : ''}
+      `;
+        document.getElementById('csvInput').value = '';
+      } catch (e) {
+        showToast('Lỗi Import: ' + e.message, 'danger');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Tiến hành Import';
+      }
+    }
+
+    function showToast(msg, type = 'info') {
+      const c = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.textContent = msg;
+      c.appendChild(t);
+      setTimeout(() => t.remove(), 3200);
+    }
+
+    // ===== AI SETTINGS =====
+    async function loadAiSettings() {
+      try {
+        const settings = await api.getAiSettings();
+        document.getElementById('aiStoragePath').value = settings.ai_storage_path || 'Mặc định (Thư mục dự án)';
+      } catch (e) {
+        console.error('Lỗi tải cài đặt AI:', e);
+      }
+    }
+
+    async function chooseAiFolder() {
+      if (!window.electronAPI || !window.electronAPI.selectDirectory) {
+        showToast('Tính năng này chỉ hỗ trợ trên ứng dụng Desktop', 'warning');
+        return;
+      }
+      const path = await window.electronAPI.selectDirectory();
+      if (path) {
+        document.getElementById('aiStoragePath').value = path;
+      }
+    }
+
+    async function saveAiSettings() {
+      const path = document.getElementById('aiStoragePath').value;
+      const cleanPath = path.includes('Mặc định') ? '' : path;
+      try {
+        await api.updateAiSettings({ ai_storage_path: cleanPath });
+        showToast('✅ Đã cập nhật thư mục lưu trữ AI', 'success');
+      } catch (e) {
+        showToast('Lỗi lưu cấu hình: ' + e.message, 'danger');
+      }
+    }
+
+    async function saveTelegramSettings() {
+      const chatId = document.getElementById('telegramChatId').value.trim();
+      try {
+        await api.updateTelegramChatId(chatId);
+        showToast('✅ Đã cập nhật Telegram Chat ID', 'success');
+
+        const user = getCurrentUser();
+        if (user) {
+          user.telegram_chat_id = chatId;
+          localStorage.setItem('user', JSON.stringify(user));
+        }
+      } catch (e) {
+        showToast('Lỗi lưu Chat ID: ' + e.message, 'danger');
+      }
+    }
+
+    // Change Password logic
+    function openPasswordModal() { document.getElementById('passwordModal').classList.add('active'); }
+    function closePasswordModal() {
+      document.getElementById('passwordModal').classList.remove('active');
+      document.getElementById('passwordForm').reset();
+    }
+
+    document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const oldPassword = document.getElementById('oldPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (newPassword !== confirmPassword) {
+        showToast('Mật khẩu xác nhận không khớp', 'danger');
+        return;
+      }
+
+      try {
+        await api.changePassword({ oldPassword, newPassword, confirmPassword });
+        showToast('✅ Đổi mật khẩu thành công', 'success');
+        closePasswordModal();
+      } catch (err) {
+        showToast('Lỗi: ' + err.message, 'danger');
+      }
+    });
+
+    // Init
+    window.addEventListener('load', () => {
+      loadCategories().then(() => loadRules());
+      loadAiSettings();
+      api.getCurrentUser().then(data => {
+        if (data.user && data.user.telegram_chat_id) {
+          document.getElementById('telegramChatId').value = data.user.telegram_chat_id;
+        }
+      });
+    });
+  </script>
 </body>
 
 </html>

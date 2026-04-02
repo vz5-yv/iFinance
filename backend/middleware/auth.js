@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const UserModel = require('../models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here-change-in-production';
@@ -53,7 +53,8 @@ const auth = {
         req.user = {
             id: user.id,
             username: user.username,
-            role: user.role
+            role: user.role,
+            telegram_chat_id: user.telegram_chat_id
         };
 
         next();

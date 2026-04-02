@@ -13,15 +13,19 @@ const CategoryModel = {
     },
 
     getAll(scope = null) {
-        let query = 'SELECT * FROM categories';
+        let query = `
+            SELECT c.*, COUNT(t.id) as transaction_count 
+            FROM categories c
+            LEFT JOIN transactions t ON c.id = t.category_id
+        `;
         const params = [];
 
         if (scope) {
-            query += ' WHERE scope = ? OR scope = "both"';
+            query += ' WHERE c.scope = ? OR c.scope = "both"';
             params.push(scope);
         }
 
-        query += ' ORDER BY name';
+        query += ' GROUP BY c.id ORDER BY c.name';
 
         const stmt = db.prepare(query);
         return stmt.all(...params);

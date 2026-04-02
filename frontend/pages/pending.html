@@ -1,168 +1,220 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chờ xác nhận - iFinance</title>
-    <link rel="stylesheet" href="../css/main.css">
-    <style>
-        .layout {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        .sidebar {
-            width: 250px;
-            background: var(--dark-bg);
-            padding: 20px;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 32px;
-            text-align: center;
-        }
-
-        .nav-menu {
-            list-style: none;
-        }
-
-        .nav-item {
-            margin-bottom: 8px;
-        }
-
-        .nav-link {
-            display: block;
-            padding: 12px 16px;
-            color: var(--dark-text-secondary);
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 32px;
-            background: var(--dark-bg-secondary);
-        }
-
-        .pending-item {
-            background: var(--dark-bg);
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            border-left: 4px solid var(--warning-color);
-        }
-
-        .confidence {
-            font-weight: 600;
-            color: var(--warning-color);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chờ xác nhận - iFinance</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .pending-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-left: 3px solid var(--warning);
+      border-radius: var(--r-lg);
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.25s var(--ease);
+      animation: cardFadeUp 0.3s var(--ease) both;
+    }
+    .pending-card:hover {
+      border-left-color: var(--accent);
+      transform: translateX(3px);
+      box-shadow: var(--shadow-md);
+    }
+    .pending-info { flex: 1; min-width: 0; }
+    .pending-title { font-weight: 600; font-size: 14px; color: var(--text-primary); }
+    .pending-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .pending-suggestion { margin-top: 8px; font-size: 12.5px; }
+    .conf-bar-wrap { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .conf-bar-track { flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 100px; overflow: hidden; }
+    .conf-bar-fill { height: 100%; border-radius: 100px; transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1); width: 0%; }
+    .conf-label { font-size: 11px; color: var(--text-muted); min-width: 32px; text-align: right; font-weight: 600; }
+    .pending-amount { font-size: 16px; font-weight: 700; flex-shrink: 0; }
+    .pending-actions { display: flex; gap: 8px; flex-shrink: 0; flex-direction: column; }
+    @media (min-width: 600px) { .pending-actions { flex-direction: row; } }
+  </style>
 </head>
-
 <body>
-    <div class="layout">
-        <aside class="sidebar">
-            <div class="logo">iFinance</div>
-            <ul class="nav-menu">
-                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('dashboard')">📊 Dashboard</a></li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('transactions')">💳 Giao dịch</a>
-                </li>
-                <li class="nav-item"><a href="#" class="nav-link active" onclick="loadPage('pending')">⏳ Chờ xác
-                        nhận</a></li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('reports')">📈 Báo cáo</a></li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('settings')">⚙️ Cài đặt</a></li>
-                <li class="nav-item" style="margin-top: 32px;"><a href="#" class="nav-link" onclick="logout()">🚪 Đăng
-                        xuất</a></li>
-            </ul>
-        </aside>
-
-        <main class="main-content">
-            <h1 style="margin-bottom: 32px;">Giao dịch chờ xác nhận</h1>
-            <div id="pendingList"></div>
-        </main>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon"><img src="../assets/icon.png" alt="logo"></div>
+      <span class="logo-text">iFinance</span>
     </div>
-
-    <script src="../js/api.js"></script>
-    <script>
-        const user = getCurrentUser();
-        if (!user) window.electronAPI.navigate('login');
-        function loadPage(page) { window.electronAPI.navigate(page); }
-        function logout() { api.clearToken(); window.electronAPI.navigate('login'); }
-
-        async function loadPending() {
-            try {
-                const data = await api.getTransactions({ status: 'pending' });
-                displayPending(data.transactions);
-            } catch (error) {
-                showToast('Lỗi tải danh sách', 'danger');
-            }
-        }
-
-        function displayPending(transactions) {
-            const container = document.getElementById('pendingList');
-            if (transactions.length === 0) {
-                container.innerHTML = '<div class="alert alert-success">✓ Không có giao dịch chờ xác nhận</div>';
-                return;
-            }
-
-            container.innerHTML = transactions.map(t => `
-        <div class="pending-item">
-          <div style="display: flex; justify-content: space-between; align-items: start;">
-            <div style="flex: 1;">
-              <h3>${t.description}</h3>
-              <p style="color: var(--dark-text-secondary); margin: 8px 0;">
-                ${formatDate(t.date)} - ${formatCurrency(t.amount)} - ${t.type === 'income' ? 'Thu' : 'Chi'}
-              </p>
-              <p>
-                <strong>Gợi ý:</strong> ${t.suggested_category_name} 
-                <span class="confidence">(Độ tin cậy: ${(t.confidence_score * 100).toFixed(0)}%)</span>
-              </p>
-            </div>
-            <div style="display: flex; gap: 8px;">
-              <button class="btn-success" onclick="confirmTransaction(${t.id})">✓ Xác nhận</button>
-              <button class="btn-danger" onclick="rejectTransaction(${t.id})">✗ Từ chối</button>
-            </div>
-          </div>
+    <div class="nav-section-label">Menu chính</div>
+    <ul class="nav-menu">
+      <li class="nav-item"><a class="nav-link" onclick="nav('dashboard')"><span class="nav-icon">📊</span>Dashboard</a></li>
+      <li class="nav-item"><a class="nav-link" onclick="nav('transactions')"><span class="nav-icon">💳</span>Giao dịch</a></li>
+      <li class="nav-item"><a class="nav-link active" onclick="nav('pending')"><span class="nav-icon">⏳</span>Chờ xác nhận</a></li>
+      <li class="nav-item"><a class="nav-link" onclick="nav('reports')"><span class="nav-icon">📈</span>Báo cáo</a></li>
+      <li class="nav-item"><a class="nav-link" onclick="nav('ai-studio')"><span class="nav-icon">🤖</span>AI Studio</a></li>
+      <li class="nav-item"><a class="nav-link" onclick="nav('settings')"><span class="nav-icon">⚙️</span>Cài đặt</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="user-chip" style="margin-bottom:10px;justify-content:center;">
+        <div class="avatar" id="avatarText">A</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;" id="sidebarUsername"></div>
+          <div style="font-size:11px;color:var(--text-muted);" id="sidebarRole"></div>
         </div>
-      `).join('');
-        }
+      </div>
+      <button class="btn btn-secondary" style="width:100%;" onclick="logout()">🚪 Đăng xuất</button>
+    </div>
+  </aside>
 
-        async function confirmTransaction(id) {
-            try {
-                await api.confirmTransaction(id);
-                showToast('Đã xác nhận giao dịch', 'success');
-                loadPending();
-            } catch (error) {
-                showToast('Lỗi xác nhận giao dịch', 'danger');
-            }
-        }
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Quản lý duyệt</div>
+        <div class="page-subtitle">Xem xét các giao dịch từ AI hoặc phục hồi giao dịch bị từ chối</div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button class="btn btn-primary btn-sm" id="btnAutoClassify" onclick="autoClassify()">🪄 Phân loại bằng AI</button>
+        <div style="width:1px; height:20px; background:var(--border); margin:0 5px;"></div>
+        <button class="btn btn-secondary btn-sm active" id="tabPending" onclick="switchTab('pending')">⏳ Chờ duyệt</button>
+        <button class="btn btn-secondary btn-sm" id="tabRejected" onclick="switchTab('rejected')">📑 Lịch sử từ chối</button>
+      </div>
+    </div>
+    <div class="page-body">
+      <div id="pendingList"><div class="loader"></div></div>
+    </div>
+  </main>
+</div>
 
-        async function rejectTransaction(id) {
-            try {
-                await api.updateTransaction(id, { status: 'confirmed', category_id: null });
-                showToast('Đã từ chối gợi ý', 'success');
-                loadPending();
-            } catch (error) {
-                showToast('Lỗi xử lý', 'danger');
-            }
-        }
+<div class="toast-container" id="toastContainer"></div>
+<script src="../js/api.js"></script>
+<script>
+  let currentTab = 'pending';
+  const user = getCurrentUser();
+  if (!user) window.electronAPI.navigate('login');
+  document.getElementById('sidebarUsername').textContent = user.username;
+  document.getElementById('sidebarRole').textContent = user.role;
+  document.getElementById('avatarText').textContent = user.username[0].toUpperCase();
+  function nav(page) { window.electronAPI.navigate(page); }
+  function logout() { api.clearToken(); window.electronAPI.navigate('login'); }
 
-        loadPending();
-    </script>
+  async function autoClassify() {
+    const btn = document.getElementById('btnAutoClassify');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '🚀 Đang phân loại...';
+    try {
+      const res = await api.bulkAutoClassify();
+      showToast(`✨ Đã cập nhật ${res.updated} gợi ý!`, 'success');
+      loadData();
+    } catch(e) {
+      showToast('Cần khởi động AI Studio trước!', 'warning');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  async function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('tabPending').classList.toggle('active', tab === 'pending');
+    document.getElementById('tabRejected').classList.toggle('active', tab === 'rejected');
+    loadData();
+  }
+
+  async function loadData() {
+    try {
+      const data = await api.getTransactions({ status: currentTab });
+      render(data.transactions || []);
+    } catch(e) { showToast('Lỗi tải danh sách', 'danger'); }
+  }
+
+  function render(txs) {
+    const el = document.getElementById('pendingList');
+    if (!txs.length) {
+      const msg = currentTab === 'pending' ? 'Tất cả giao dịch đã được xác nhận!' : 'Chưa có giao dịch nào bị từ chối.';
+      const icon = currentTab === 'pending' ? '✅' : '📑';
+      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">${icon}</div><div class="empty-state-text">${msg}</div></div>`;
+      return;
+    }
+    el.innerHTML = txs.map((t, idx) => {
+      const conf = t.confidence_score ? Math.round(t.confidence_score * 100) : 0;
+      const confColor = conf >= 80 ? 'var(--income)' : conf >= 50 ? 'var(--warning)' : 'var(--expense)';
+      const isPending = t.status === 'pending';
+      return `
+      <div class="pending-card" style="${!isPending ? 'border-left-color: var(--text-muted)' : ''};animation-delay:${idx * 0.05}s">
+        <div style="width:42px;height:42px;border-radius:10px;background:${isPending ? 'var(--warning-bg)' : 'rgba(255,255,255,0.04)'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border:1px solid ${isPending ? 'rgba(245,158,11,0.2)' : 'var(--border)'};">
+          ${isPending ? '⏳' : '🚫'}
+        </div>
+        <div class="pending-info">
+          <div class="pending-title">${t.description}</div>
+          <div class="pending-meta">${formatDate(t.date)} · ${t.type==='income'?'<span style="color:var(--income)">↑ Thu nhập</span>':'<span style="color:var(--expense)">↓ Chi tiêu</span>'} · ${t.scope==='personal'?'Cá nhân':'Công việc'}</div>
+          ${t.suggested_category_name ? `
+          <div class="pending-suggestion">
+            <span style="color:var(--text-muted);font-size:11px;">Gợi ý danh mục:</span> <strong style="color:var(--text-primary)">${t.suggested_category_name}</strong>
+          </div>` : ''}
+          ${conf > 0 ? `
+          <div class="conf-bar-wrap">
+            <div class="conf-bar-track"><div class="conf-bar-fill" data-width="${conf}" style="background:${confColor};"></div></div>
+            <span class="conf-label" style="color:${confColor};">${conf}%</span>
+          </div>` : ''}
+        </div>
+        <div class="pending-amount" style="color:${t.type==='income'?'var(--income)':'var(--expense)'}">
+          ${t.type==='income'?'+':'-'}${formatCurrency(t.amount)}
+        </div>
+        <div class="pending-actions">
+          ${isPending ? `
+            <button class="btn btn-success btn-sm" onclick="confirmTx(${t.id})">✓ Xác nhận</button>
+            <button class="btn btn-danger btn-sm" onclick="rejectTx(${t.id})">✗ Từ chối</button>
+          ` : `
+            <button class="btn btn-secondary btn-sm" onclick="restoreTx(${t.id})">🔄 Phục hồi</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteTx(${t.id})">🗑️</button>
+          `}
+        </div>
+      </div>`;
+    }).join('');
+
+    // Animate confidence bars after render
+    setTimeout(() => {
+      document.querySelectorAll('.conf-bar-fill').forEach(bar => {
+        const w = bar.getAttribute('data-width');
+        if (w) bar.style.width = w + '%';
+      });
+    }, 100);
+  }
+
+  async function confirmTx(id) {
+    try { await api.confirmTransaction(id); showToast('✅ Đã xác nhận', 'success'); loadData(); }
+    catch(e) { showToast('Lỗi xác nhận', 'danger'); }
+  }
+  async function rejectTx(id) {
+    try { 
+      await api.updateTransaction(id, { status: 'rejected' }); 
+      showToast('🚫 Đã từ chối giao dịch', 'info'); 
+      loadData(); 
+    } catch(e) { showToast('Lỗi xử lý', 'danger'); }
+  }
+  async function restoreTx(id) {
+    try { 
+      await api.updateTransaction(id, { status: 'pending' }); 
+      showToast('🔄 Đã đưa lại mục chờ duyệt', 'success'); 
+      loadData(); 
+    } catch(e) { showToast('Lỗi phục hồi', 'danger'); }
+  }
+  async function deleteTx(id) {
+    if (!confirm('Xóa vĩnh viễn giao dịch này?')) return;
+    try { await api.deleteTransaction(id); showToast('🗑️ Đã xóa vĩnh viễn', 'info'); loadData(); }
+    catch(e) { showToast('Lỗi khi xóa', 'danger'); }
+  }
+
+  function showToast(msg, type='info') {
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  loadData();
+</script>
 </body>
-
 </html>

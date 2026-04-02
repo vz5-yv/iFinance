@@ -18,9 +18,10 @@ CREATE TABLE IF NOT EXISTS transactions (
   scope TEXT NOT NULL CHECK(scope IN ('personal', 'business')),
   category_id INTEGER,
   source TEXT,
-  status TEXT DEFAULT 'confirmed' CHECK(status IN ('pending', 'confirmed')),
+  status TEXT DEFAULT 'confirmed' CHECK(status IN ('pending', 'confirmed', 'rejected')),
   suggested_category_id INTEGER,
   confidence_score REAL,
+  ai_explanation TEXT,
   created_by INTEGER,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -61,28 +62,28 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Insert default categories
-INSERT INTO categories (name, scope) VALUES
-  ('Lương', 'business'),
-  ('Thưởng', 'business'),
-  ('Bán hàng', 'business'),
-  ('Tiền mặt', 'personal'),
-  ('Ăn uống', 'both'),
-  ('Di chuyển', 'both'),
-  ('Văn phòng phẩm', 'business'),
-  ('Tiền điện', 'both'),
-  ('Tiền nước', 'both'),
-  ('Internet', 'both'),
-  ('Giải trí', 'personal'),
-  ('Mua sắm', 'personal'),
-  ('Y tế', 'both'),
-  ('Giáo dục', 'personal'),
-  ('Khác', 'both');
+-- Insert default categories (INSERT OR IGNORE prevents duplicates on restart)
+INSERT OR IGNORE INTO categories (id, name, scope) VALUES
+  (1,  'Lương', 'business'),
+  (2,  'Thưởng', 'business'),
+  (3,  'Bán hàng', 'business'),
+  (4,  'Tiền mặt', 'personal'),
+  (5,  'Ăn uống', 'both'),
+  (6,  'Di chuyển', 'both'),
+  (7,  'Văn phòng phẩm', 'business'),
+  (8,  'Tiền điện', 'both'),
+  (9,  'Tiền nước', 'both'),
+  (10, 'Internet', 'both'),
+  (11, 'Giải trí', 'personal'),
+  (12, 'Mua sắm', 'personal'),
+  (13, 'Y tế', 'both'),
+  (14, 'Giáo dục', 'personal'),
+  (15, 'Khác', 'both');
 
 -- Insert default admin user (password: admin123)
 -- Password hash generated with bcrypt, rounds=10
-INSERT INTO users (username, password_hash, role) VALUES
-  ('admin', '$2b$10$X7VB.bJQl3B7qKl0qYmzTOqYTxZjHvYYyR1F7F4LRJZFqGJPkZQ2m', 'Admin');
+INSERT OR IGNORE INTO users (username, password_hash, role) VALUES
+  ('admin', '$2b$10$LOQtkQOV38LVYDIKtYymtOkPr4FC8WW0ZbgeKVfDAQH8WfoIuJd6C', 'Admin');
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
@@ -92,3 +93,13 @@ CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category_id
 CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
+
+-- Settings table for app-wide configurations
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Default AI storage path (empty means use default backend/bin)
+INSERT OR IGNORE INTO settings (key, value) VALUES ('ai_storage_path', '');

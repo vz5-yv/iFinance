@@ -1,0 +1,43 @@
+# iFinance – Báo cáo Kiểm tra Tiến độ & Mục tiêu
+
+Dưới đây là bảng so sánh giữa mục tiêu đề tài và trạng thái hiện tại của hệ thống **iFinance**.
+
+## 1. Tổng quan Trạng thái (Tuần 9 - 24/03/2026)
+Hệ thống hiện tại đang ở giai đoạn **Hoàn thiện & Kiểm thử (Tuần 7-8)** theo đúng tiến độ dự kiến (19/04/2026 kết thúc).
+
+| Mục tiêu / Nội dung | Trạng thái | Chi tiết kỹ thuật |
+| :--- | :---: | :--- |
+| **Kiến trúc Hệ thống** | ✅ Hoàn thành | Node.js (Express) + SQLite + Electron. |
+| **API Server** | ✅ Hoàn thành | Xử lý CRUD giao dịch, thống kê, AI và Auth. |
+| **Ứng dụng Desktop** | ✅ Hoàn thành | Giao diện Electron chuyên nghiệp, mượt mà. |
+| **Bot Telegram** | ✅ Hoàn thành | Hỗ trợ đa người dùng, tự động phân loại. |
+| **Phân loại Thông minh** | ✅ Hoàn thành | Kết hợp Rule-based (22+ luật) và AI Studio (LLM). |
+| **Báo cáo & Dashboard** | ✅ Hoàn thành | Dashboard thời gian thực (Socket.io), Báo cáo tỷ trọng. |
+| **Cảnh báo Bất thường** | ✅ Hoàn thành | Sử dụng AI (Qwen/Llama) để giải thích lý do bất thường. |
+
+## 2. Đối chiếu chi tiết với yêu cầu
+
+### 🖥️ Giao diện & Nền tảng
+- **Yêu cầu ban đầu:** User nhắc đến WPF ở đầu nhưng Timeline (TT) ghi Electron.
+- **Hiện tại:** Ứng dụng chạy trên **Electron**. Đây là lựa chọn tối ưu theo tiến độ Tuần 5 trong kế hoạch của bạn, giúp giao diện hiện đại và dễ phát triển các tính năng Real-time.
+- **Dashboard:** Đã tích hợp đầy đủ Tổng thu/chi, Số dư và danh sách cảnh báo AI.
+
+### 📱 Telegram Bot (Đa người dùng)
+- Hệ thống đã chuyển đổi từ Hardcoded Admin sang **Multi-user**.
+- User có thể tự lấy Chat ID qua `@Getmyid_Work_Bot` và liên kết trong phần Cài đặt.
+- Bot tự động gợi ý danh mục và gửi về API Server để xử lý.
+
+### 🤖 Trí tuệ nhân tạo (AI)
+- **Học từ lịch sử:** Hệ thống sử dụng bảng `rules` để lưu các mẫu phân loại từ người dùng (Học máy dạng luật).
+- **Giải thích bất thường:** Đã tích hợp Logic thống kê (Mean/StdDev) kết hợp với **LLM (Local)** để đưa ra câu trả lời tự nhiên (ví dụ: "Chi tiêu tiền cơm cao hơn 200% so với trung bình hàng tháng...").
+- **Local Model:** Đã cấu hình chạy **Qwen 2.5 1.5B** qua AI Studio, đảm bảo bảo mật dữ liệu nội bộ (không gửi Plaintext ra ngoài).
+
+## 3. Đánh giá & Đề xuất
+Hệ thống của bạn hiện tại đã đạt **~90% khối lượng công việc** so với đề tài.
+
+**Đề xuất cho giai đoạn cuối (Tuần 8-10):**
+1. **Biểu đồ (Charts):** Hiện tại hệ thống dùng thanh tỷ trọng (Progress Bar). Nếu cần biểu đồ diện tích (Area/Line chart) cho Dashboard, có thể tích hợp thêm `Chart.js`.
+2. **Gmail Sync:** Như đã trao đổi, phần này chưa có trong code hiện tại. Nếu là bắt buộc cho đề tài, cần bổ sung module đọc IMAP/POP3.
+3. **Backup dữ liệu:** Thêm chức năng Export/Import database SQLite để đảm bảo an toàn dữ liệu doanh nghiệp.
+
+**Kết luận:** Dự án đang đi đúng hướng và có độ hoàn thiện kỹ thuật rất tốt, đặc biệt là phần tích hợp AI Local và Bot Telegram.

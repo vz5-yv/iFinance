@@ -45,12 +45,23 @@ const schemas = {
         type: Joi.string().valid('income', 'expense').optional(),
         scope: Joi.string().valid('personal', 'business').optional(),
         category_id: Joi.number().integer().optional().allow(null),
-        status: Joi.string().valid('pending', 'confirmed').optional()
+        status: Joi.string().valid('pending', 'confirmed').optional(),
+        source: Joi.string().optional().allow(null, '')
     }),
 
     createCategory: Joi.object({
         name: Joi.string().required(),
         scope: Joi.string().valid('personal', 'business', 'both').required()
+    }),
+    
+    updateTelegramChatId: Joi.object({
+        telegram_chat_id: Joi.string().allow(null, '').optional()
+    }),
+
+    changePassword: Joi.object({
+        oldPassword: Joi.string().required(),
+        newPassword: Joi.string().min(6).required(),
+        confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required()
     })
 };
 

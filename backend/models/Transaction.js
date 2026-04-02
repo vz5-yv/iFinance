@@ -54,8 +54,13 @@ const TransactionModel = {
             params.push(filters.scope);
         }
         if (filters.status) {
-            query += ' AND t.status = ?';
-            params.push(filters.status);
+            if (Array.isArray(filters.status)) {
+                query += ` AND t.status IN (${filters.status.map(() => '?').join(',')})`;
+                params.push(...filters.status);
+            } else {
+                query += ' AND t.status = ?';
+                params.push(filters.status);
+            }
         }
         if (filters.category_id) {
             query += ' AND t.category_id = ?';
@@ -78,11 +83,38 @@ const TransactionModel = {
 
         if (filters.limit) {
             query += ' LIMIT ?';
-            params.push(filters.limit);
+            params.push(parseInt(filters.limit));
+            if (filters.offset) {
+                query += ' OFFSET ?';
+                params.push(parseInt(filters.offset));
+            }
         }
 
         const stmt = db.prepare(query);
         return stmt.all(...params);
+    },
+
+    count(filters = {}) {
+        let query = 'SELECT COUNT(*) as total FROM transactions t WHERE 1=1';
+        const params = [];
+
+        if (filters.type) { query += ' AND t.type = ?'; params.push(filters.type); }
+        if (filters.scope) { query += ' AND t.scope = ?'; params.push(filters.scope); }
+        if (filters.status) {
+            if (Array.isArray(filters.status)) {
+                query += ` AND t.status IN (${filters.status.map(() => '?').join(',')})`;
+                params.push(...filters.status);
+            } else {
+                query += ' AND t.status = ?'; params.push(filters.status);
+            }
+        }
+        if (filters.category_id) { query += ' AND t.category_id = ?'; params.push(filters.category_id); }
+        if (filters.start_date) { query += ' AND t.date >= ?'; params.push(filters.start_date); }
+        if (filters.end_date) { query += ' AND t.date <= ?'; params.push(filters.end_date); }
+        if (filters.search) { query += ' AND t.description LIKE ?'; params.push(`%${filters.search}%`); }
+
+        const stmt = db.prepare(query);
+        return stmt.get(...params).total;
     },
 
     update(id, data) {
@@ -116,6 +148,14 @@ const TransactionModel = {
         if (data.status !== undefined) {
             fields.push('status = ?');
             params.push(data.status);
+        }
+        if (data.ai_explanation !== undefined) {
+            fields.push('ai_explanation = ?');
+            params.push(data.ai_explanation);
+        }
+        if (data.source !== undefined) {
+            fields.push('source = ?');
+            params.push(data.source);
         }
 
         fields.push('updated_at = CURRENT_TIMESTAMP');
@@ -153,6 +193,14 @@ const TransactionModel = {
             query += ' AND date <= ?';
             params.push(filters.end_date);
         }
+        if (filters.category_id) {
+            query += ' AND category_id = ?';
+            params.push(filters.category_id);
+        }
+        if (filters.scope) {
+            query += ' AND scope = ?';
+            params.push(filters.scope);
+        }
 
         query += ' GROUP BY type, scope';
 
@@ -166,10 +214,11 @@ const TransactionModel = {
         c.id,
         c.name,
         t.type,
+        t.scope,
         SUM(t.amount) as total,
         COUNT(*) as count,
         AVG(t.amount) as average,
-        STDEV(t.amount) as std_dev
+        SQRT(AVG(t.amount * t.amount) - AVG(t.amount) * AVG(t.amount)) as std_dev
       FROM transactions t
       JOIN categories c ON t.category_id = c.id
       WHERE t.status = 'confirmed'
@@ -184,8 +233,16 @@ const TransactionModel = {
             query += ' AND t.date <= ?';
             params.push(filters.end_date);
         }
+        if (filters.category_id) {
+            query += ' AND t.category_id = ?';
+            params.push(filters.category_id);
+        }
+        if (filters.scope) {
+            query += ' AND t.scope = ?';
+            params.push(filters.scope);
+        }
 
-        query += ' GROUP BY c.id, c.name, t.type';
+        query += ' GROUP BY c.id, c.name, t.type, t.scope';
 
         const stmt = db.prepare(query);
         return stmt.all(...params);

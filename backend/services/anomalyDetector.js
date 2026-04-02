@@ -1,14 +1,12 @@
 const TransactionModel = require('../models/Transaction');
 
 class AnomalyDetectorService {
-    detectAnomalies(categoryId, amount, type) {
+    detectAnomalies(categoryId, amount, type, allStats = []) {
         if (!categoryId) {
             return { isAnomaly: false };
         }
 
-        const stats = TransactionModel.getCategoryStats({});
-
-        const categoryStats = stats.find(
+        const categoryStats = allStats.find(
             s => s.id === categoryId && s.type === type
         );
 
@@ -21,7 +19,7 @@ class AnomalyDetectorService {
 
         const threshold = mean + (2 * stdDev);
 
-        if (amount > threshold) {
+        if (type === 'expense' && amount > threshold) {
             return {
                 isAnomaly: true,
                 reason: 'Amount significantly higher than average',
@@ -32,7 +30,7 @@ class AnomalyDetectorService {
         }
 
         const highThreshold = mean * 3;
-        if (amount > highThreshold) {
+        if (type === 'expense' && amount > highThreshold) {
             return {
                 isAnomaly: true,
                 reason: 'Amount more than 3x average',
@@ -48,8 +46,11 @@ class AnomalyDetectorService {
         const transactions = TransactionModel.getAll({
             start_date: startDate,
             end_date: endDate,
-            status: 'confirmed'
+            status: ['confirmed', 'pending']
         });
+
+        // Fetch stats once (Optimization: avoid N+1)
+        const allStats = TransactionModel.getCategoryStats({});
 
         const anomalies = [];
 
@@ -57,7 +58,8 @@ class AnomalyDetectorService {
             const result = this.detectAnomalies(
                 transaction.category_id,
                 transaction.amount,
-                transaction.type
+                transaction.type,
+                allStats
             );
 
             if (result.isAnomaly) {

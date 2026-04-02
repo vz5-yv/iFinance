@@ -1,117 +1,99 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Đăng nhập - iFinance</title>
   <link rel="stylesheet" href="../css/main.css">
-  <style>
-    .login-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    .login-card {
-      background: var(--dark-bg);
-      border-radius: 16px;
-      padding: 48px;
-      max-width: 420px;
-      width: 100%;
-      box-shadow: var(--shadow-lg);
-    }
-
-    .login-header {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    .login-title {
-      font-size: 32px;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 8px;
-    }
-
-    .login-subtitle {
-      color: var(--dark-text-secondary);
-      font-size: 14px;
-    }
-
-    .login-form {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .login-btn {
-      width: 100%;
-      padding: 14px;
-      font-size: 16px;
-      margin-top: 8px;
-    }
-  </style>
 </head>
+
 <body>
-  <div class="login-container">
+  <div class="login-bg">
     <div class="login-card">
-      <div class="login-header">
-        <h1 class="login-title">iFinance</h1>
-        <p class="login-subtitle">Hệ thống quản lý thu chi thông minh</p>
+      <div class="login-logo">
+        <div class="login-logo-icon"><img src="../assets/icon.png" alt="logo"></div>
+        <div class="login-title">iFinance</div>
+        <div class="login-subtitle">Hệ thống quản lý thu chi thông minh</div>
       </div>
 
       <div id="error-message"></div>
 
-      <form id="loginForm" class="login-form">
+      <form id="loginForm">
         <div class="form-group">
           <label for="username">Tên đăng nhập</label>
-          <input type="text" id="username" name="username" required autocomplete="username">
+          <input type="text" id="username" name="username" required autocomplete="username"
+            placeholder="Nhập tên đăng nhập">
         </div>
-
         <div class="form-group">
           <label for="password">Mật khẩu</label>
-          <input type="password" id="password" name="password" required autocomplete="current-password">
+          <input type="password" id="password" name="password" required autocomplete="current-password"
+            placeholder="••••••••">
         </div>
-
-        <button type="submit" class="btn-primary login-btn">Đăng nhập</button>
+        <button type="submit" id="loginBtn" class="btn btn-primary login-btn">Đăng nhập</button>
       </form>
 
-      <div style="margin-top: 24px; text-align: center; color: var(--dark-text-secondary); font-size: 12px;">
-        <p>Tài khoản mặc định: admin / admin123</p>
+      <div class="login-hint">
+        Tài khoản mặc định: <strong>admin</strong> / <strong>admin123</strong>
       </div>
     </div>
   </div>
 
   <script src="../js/api.js"></script>
   <script>
+    // Browser fallback for Electron API
+    if (!window.electronAPI) {
+      window.electronAPI = {
+        navigate: (page) => {
+          window.location.href = page + '.html';
+        }
+      };
+    }
+
+    // Auto-redirect if session still valid
+    (async () => {
+      const stored = getCurrentUser();
+      const token = localStorage.getItem('token');
+      if (stored && token) {
+        try {
+          await api.request('/auth/me');
+          // Token still valid — go straight to dashboard
+          window.electronAPI.navigate('dashboard');
+          return;
+        } catch (e) {
+          // Token expired → show login form normally
+          api.clearToken();
+        }
+      }
+    })();
+
     const loginForm = document.getElementById('loginForm');
     const errorMessage = document.getElementById('error-message');
+    const loginBtn = document.getElementById('loginBtn');
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorMessage.innerHTML = '';
-
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
 
-      try {
-        const loginBtn = loginForm.querySelector('button');
-        loginBtn.disabled = true;
-        loginBtn.textContent = 'Đang đăng nhập...';
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Đang đăng nhập...';
 
+      try {
         await api.login(username, password);
-        
         window.electronAPI.navigate('dashboard');
       } catch (error) {
-        errorMessage.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
-        loginForm.querySelector('button').disabled = false;
-        loginForm.querySelector('button').textContent = 'Đăng nhập';
+        let msg = 'Sai tên đăng nhập hoặc mật khẩu';
+        if (error.message === 'Invalid credentials') msg = 'Sai tên đăng nhập hoặc mật khẩu';
+        else if (error.message) msg = error.message;
+
+        errorMessage.innerHTML = `<div class="alert alert-danger" style="margin-bottom:15px; border-radius:8px; padding:10px; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.2); color:#ef4444; font-size:13px;">❌ ${msg}</div>`;
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Đăng nhập';
       }
     });
   </script>
 </body>
+
 </html>

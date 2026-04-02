@@ -1,5 +1,17 @@
 const API_BASE_URL = 'http://localhost:3000/api';
 
+// Browser fallback for Electron API
+if (!window.electronAPI) {
+    window.electronAPI = {
+        navigate: (page) => {
+            window.location.href = page + '.html';
+        },
+        // Add other common Electron APIs used in the app
+        on: (channel, callback) => console.log(`Electron event listener registered for: ${channel}`),
+        send: (channel, ...args) => console.log(`Electron event sent: ${channel}`, ...args)
+    };
+}
+
 class API {
     constructor() {
         this.token = localStorage.getItem('token');
@@ -51,6 +63,13 @@ class API {
         }
     }
 
+    async post(endpoint, data = {}) {
+        return await this.request(endpoint, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
     async login(username, password) {
         const data = await this.request('/auth/login', {
             method: 'POST',
@@ -87,6 +106,37 @@ class API {
         });
     }
 
+    // --- Rules ---
+    async getRules() {
+        return await this.request('/rules');
+    }
+
+    async createRule(data) {
+        return await this.request('/rules', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateRule(id, data) {
+        return await this.request(`/rules/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteRule(id) {
+        return await this.request(`/rules/${id}`, { method: 'DELETE' });
+    }
+
+    // --- Import ---
+    async importTransactions(transactions) {
+        return await this.request('/transactions/import', {
+            method: 'POST',
+            body: JSON.stringify({ transactions })
+        });
+    }
+
     async confirmTransaction(id) {
         return await this.request(`/transactions/${id}/confirm`, {
             method: 'POST'
@@ -118,6 +168,38 @@ class API {
     async getAuditLogs(filters = {}) {
         const params = new URLSearchParams(filters);
         return await this.request(`/audit-logs?${params}`);
+    }
+
+    // AI Studio
+    async getAiSpecs() { return await this.request('/ai/specs'); }
+    async getAiStatus() { return await this.request('/ai/status'); }
+    async setupAiEngine() { return await this.request('/ai/setup-engine', { method: 'POST' }); }
+    async setupAiModel() { return await this.request('/ai/setup-model', { method: 'POST' }); }
+    async startAiEngine() { return await this.request('/ai/start', { method: 'POST' }); }
+    async stopAiEngine() { return await this.request('/ai/stop', { method: 'POST' }); }
+
+    // AI Settings
+    async getAiSettings() { return await this.request('/ai/settings'); }
+    async updateAiSettings(data) { return await this.request('/ai/settings', { method: 'POST', body: JSON.stringify(data) }); }
+    async bulkAutoClassify() { return await this.request('/ai/auto-classify', { method: 'POST' }); }
+    async aiChat(message, history = []) { return await this.request('/ai/chat', { method: 'POST', body: JSON.stringify({ message, history }) }); }
+
+    async getCurrentUser() {
+        return await this.request('/auth/me');
+    }
+
+    async updateTelegramChatId(chatId) {
+        return await this.request('/auth/telegram-chat-id', {
+            method: 'POST',
+            body: JSON.stringify({ telegram_chat_id: chatId })
+        });
+    }
+
+    async changePassword(data) {
+        return await this.request('/auth/change-password', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
     }
 }
 

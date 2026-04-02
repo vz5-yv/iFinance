@@ -1,0 +1,405 @@
+# Báo Cáo Kiểm Tra Bảo Mật & Logic — iFinance Backend
+
+**Ngày kiểm tra:** 2025-06-26  
+**Phạm vi:** `server.js`, `ai.js`, `aiManager.js`, `aiService.js`, `anomalyDetector.js`, `classifier.js`, `telegramService.js`  
+**Mức độ:** 🔴 Nghiêm trọng · 🟠 Cao · 🟡 Trung bình · 🟢 Thấp
+
+---
+
+## TÓM TẮT ĐIỀU HÀNH
+
+Hệ thống được xây dựng khá tốt về cấu trúc, có tích hợp AI và Telegram thực tế. Tuy nhiên có **3 lỗ hổng bảo mật nghiêm trọng**, **5 lỗi logic quan trọng**, và nhiều vấn đề nhỏ hơn cần khắc phục trước khi đưa vào production.
+
+---
+
+## PHẦN 1 — BẢO MẬT
+
+### 🔴 BM-01: Endpoint `/re-analyze` không có xác thực
+
+**File:** `ai.js`, dòng 341
+
+```js
+// HIỆN TẠI — hoàn toàn public, không cần token
+router.post('/re-analyze', async (req, res) => {
+
+// NÊN SỬA
+router.post('/re-analyze', auth.authenticate, auth.authorize('Admin'), async (req, res) => {
+```
+
+**Rủi ro:** Bất kỳ ai cũng có thể gọi `POST /api/ai/re-analyze` với `{ "force": true }` để **xóa toàn bộ kết quả phân tích AI** của mọi giao dịch mà không cần đăng nhập. Đây là lỗ hổng phá hoại dữ liệu không cần xác thực.
+
+---
+
+### 🔴 BM-02: Telegram Bot không kiểm tra nguồn gốc tin nhắn trước khi xử lý
+
+**File:** `telegramService.js`, dòng 24–30
+
+Hệ thống chỉ kiểm tra `UserModel.findByChatId` nhưng **không giới hạn tốc độ (rate limit)** tại tầng Telegram. Nếu một user hợp lệ bị lộ `chatId` hoặc bot bị forward, kẻ tấn công có thể spam giao dịch hàng loạt.
+
+**Thêm nên:**
+```js
+// Theo dõi số tin nhắn / phút per chatId
+const rateLimitMap = new Map();
+bot.on('message', async (msg) => {
+    const now = Date.now();
+    const key = msg.chat.id;
+    const last = rateLimitMap.get(key) || [];
+    const recent = last.filter(t => now - t < 60000); // trong 60s
+    if (recent.length >= 10) {
+        bot.sendMessage(key, '⚠️ Bạn gửi quá nhiều tin nhắn. Vui lòng đợi.');
+        return;
+    }
+    rateLimitMap.set(key, [...recent, now]);
+    // ... xử lý tiếp
+});
+```
+
+---
+
+### 🔴 BM-03: Tiêm lệnh tiềm năng qua `ai_storage_path`
+
+**File:** `aiManager.js`, dòng 13–21
+
+```js
+const customPath = SettingModel.get('ai_storage_path');
+const rootDir = customPath || path.join(__dirname, '../');
+this.enginePath = path.join(this.binDir, 'llama-server.exe');
+// ...
+this.process = spawn(this.enginePath, [], { env });
+```
+
+`ai_storage_path` được lưu từ API (`POST /api/ai/settings`) mà không có kiểm tra whitelist hoặc validate định dạng đường dẫn. Nếu kẻ tấn công có quyền Admin và muốn ghi path dạng `../../malicious/`, `spawn()` sẽ chạy file bất kỳ trên server.
+
+**Cần thêm:**
+```js
+function validateStoragePath(inputPath) {
+    const resolved = path.resolve(inputPath);
+    // Chỉ cho phép path tuyệt đối trỏ đến thư mục an toàn
+    if (!path.isAbsolute(resolved)) throw new Error('Path phải là tuyệt đối');
+    if (resolved.includes('..')) throw new Error('Path không hợp lệ');
+    return resolved;
+}
+```
+
+---
+
+### 🟠 BM-04: CORS cho phép `null` origin (Electron bypass)
+
+**File:** `server.js`, dòng 28–37
+
+```js
+if (!origin || origin === 'null' || allowed.includes(origin)) {
+    callback(null, true);
+}
+```
+
+`origin === 'null'` được cho phép để hỗ trợ Electron, nhưng **mọi request từ `file://`** (kể cả file HTML độc hại chạy locally) đều vượt qua CORS. Nên dùng header tùy chỉnh hoặc kiểm tra `User-Agent` để phân biệt Electron thật.
+
+---
+
+### 🟠 BM-05: `aiManager.downloadFile` không kiểm tra URL
+
+**File:** `aiManager.js`, dòng 45–58
+
+URL của engine và model được hardcode, tuy nhiên nếu sau này cho phép user cấu hình URL tải model tùy chỉnh (tính năng có thể mở rộng), không có validation nào. Cần whitelist domain:
+
+```js
+const ALLOWED_DOMAINS = ['huggingface.co', 'github.com', 'ggml-org.github.io'];
+function validateDownloadUrl(url) {
+    const parsed = new URL(url);
+    if (!ALLOWED_DOMAINS.includes(parsed.hostname)) throw new Error('Domain không được phép');
+}
+```
+
+---
+
+### 🟡 BM-06: Log dữ liệu nhạy cảm ra console
+
+**File:** `telegramService.js`, dòng 56; `ai.js` dòng 376
+
+```js
+console.log('🤖 AI parsed successfully:', aiResult); // in số tiền, mô tả GD
+console.log(`[AI Background] Analyzing ${t.description}: Amount ${t.amount}...`);
+```
+
+Thông tin giao dịch tài chính (số tiền, mô tả) đang được log ra stdout. Trong môi trường cloud/shared hosting, log này có thể bị đọc bởi bên khác. Nên dùng logger có level (winston/pino) và tắt log chi tiết ở production.
+
+---
+
+### 🟡 BM-07: Rate limit áp dụng cho cả `/api/auth` — dễ bị lockout hợp lệ
+
+**File:** `server.js`, dòng 43–47
+
+```js
+app.use('/api/', limiter); // áp dụng cho tất cả /api/
+```
+
+Rate limit 100 req/15 phút áp dụng cả cho login và các endpoint khác chung một IP. Trong môi trường văn phòng (nhiều user cùng IP NAT), 100 request là quá ít và có thể chặn nhầm user hợp lệ. Nên tách rate limit riêng cho `/api/auth` với giới hạn khắt khe hơn (ví dụ 10 lần/15 phút).
+
+---
+
+## PHẦN 2 — LOGIC AI
+
+### 🟠 LG-01: `anomalyDetector.js` không được dùng trong pipeline chính
+
+**File:** `ai.js` (cả `/analyze-all` và `/re-analyze`)
+
+Module `anomalyDetector.js` đã cài đặt `stdDev`, `mean`, và ngưỡng chuẩn thống kê — nhưng **không được gọi ở đâu trong các endpoint phân tích**. Cả 2 endpoint tự tính `avg` thủ công mà thiếu `stdDev`, dẫn đến phát hiện bất thường kém chính xác hơn so với công cụ đã có sẵn.
+
+```js
+// HIỆN TẠI (trong /re-analyze và /analyze-all)
+const avg = historical.reduce((s, r) => s + r.amount, 0) / historical.length;
+if (t.amount > avg * 3.0) { ... }
+
+// NÊN SỬA
+const anomalyDetector = require('./anomalyDetector');
+const result = anomalyDetector.detectAnomalies(t.category_id, t.amount, t.type);
+if (result.isAnomaly) {
+    explanation = `Cảnh báo: Lệch ${result.deviation} so với trung bình...`;
+}
+```
+
+---
+
+### 🟠 LG-02: Ngưỡng phát hiện bất thường không nhất quán giữa 2 endpoint
+
+**File:** `ai.js`
+
+| Endpoint | Ngưỡng expense | Xử lý income |
+|---|---|---|
+| `/analyze-all` (dòng 303) | `avg × 2.0` | ✅ Có, `avg × 1.5` |
+| `/re-analyze` (dòng 379) | `avg × 3.0` | ❌ Không — luôn sinh "Cảnh báo" |
+
+Cùng một giao dịch có thể ra kết quả phân tích khác nhau tùy endpoint nào chạy sau cùng. Nên tách thành một hàm `buildExplanation(transaction, avg)` dùng chung.
+
+---
+
+### 🟠 LG-03: `/re-analyze` gán nhãn "Cảnh báo" cho income tăng cao
+
+**File:** `ai.js`, dòng 378–388
+
+Endpoint `/re-analyze` không phân biệt `type === 'income'` vs `'expense'`. Thu nhập tăng 400% so với trung bình vẫn bị ghi nhãn **"Cảnh báo: Chi tiêu cao bất thường"** — sai nghiệp vụ hoàn toàn.
+
+---
+
+### 🟡 LG-04: `anomalyCount` trong `/chat` đếm sai — tính cả giao dịch "bình thường"
+
+**File:** `ai.js`, dòng 174
+
+```js
+// ĐẾM TẤT CẢ transaction có ai_explanation (kể cả "Bình thường", "Ổn định")
+const anomalyCount = db.prepare(
+    "SELECT COUNT(*) as cnt FROM transactions WHERE ai_explanation IS NOT NULL"
+).get();
+```
+
+AI sẽ báo cáo cho user số lượng "bất thường" sai — có thể là toàn bộ database. Sửa:
+
+```sql
+WHERE ai_explanation LIKE 'Cảnh báo%' OR ai_explanation LIKE 'Tăng trưởng%'
+```
+
+---
+
+### 🟡 LG-05: Dữ liệu hardcode năm `2025-01-01` trong `/chat`
+
+**File:** `ai.js`, dòng 138, 161
+
+```js
+WHERE t.status = 'confirmed' AND t.date >= '2025-01-01'
+```
+
+Ngày này được hardcode, nghĩa là khi sang năm 2027, hệ thống vẫn lấy dữ liệu từ 2025. Nên tính động:
+
+```js
+const startOfYear = `${new Date().getFullYear() - 1}-01-01`; // Lấy 2 năm gần nhất
+```
+
+---
+
+### 🟡 LG-06: `recentTxs` giới hạn 200 nhưng hệ thống nhận xét là "tối đa 100"
+
+**File:** `ai.js`, dòng 202 vs 227
+
+```js
+.slice(0, 200).join('\n'); // Code: giới hạn 200
+// ...
+`=== 📝 NHẬT KÝ CHI TIẾT (45 ngày gần nhất - Tối đa 100 GD) ===` // Prompt: ghi 100
+```
+
+Không nhất quán giữa thực tế và system prompt gửi cho AI — có thể làm AI hiểu sai về lượng dữ liệu nó có.
+
+---
+
+## PHẦN 3 — LOGIC TELEGRAM & PHÂN LOẠI
+
+### 🟠 LG-07: Telegram fallback regex có thể parse sai số tiền lớn
+
+**File:** `telegramService.js`, dòng 75–84
+
+```js
+const amountRegex = /(?:thu|chi)?\s*([\d,\.]+)\s*(k|tr|m|t)?\s*(.*)/i;
+```
+
+Regex này match cả `t` (terabyte) lẫn `tr` (triệu). Ví dụ `"Chi 5t xăng"` có thể bị hiểu là 5 triệu hoặc 5 nghìn tùy thứ tự match. Nên dùng regex cụ thể hơn và xử lý theo độ ưu tiên:
+
+```js
+// Ưu tiên: tr > t > k > m (tránh nhầm)
+const suffixMap = { 'tr': 1_000_000, 'triệu': 1_000_000, 'm': 1_000_000, 'k': 1_000, 't': 1_000 };
+```
+
+---
+
+### 🟠 LG-08: `scope` Telegram transaction bị hardcode là `'business'`
+
+**File:** `telegramService.js`, dòng 90
+
+```js
+scope: 'business', // Default scope — hardcode
+```
+
+Mọi giao dịch từ Telegram đều được phân vào scope `business`, kể cả chi tiêu cá nhân. Nếu hệ thống có scope `personal`, user không có cách chọn. Cần cho phép user cấu hình default scope trong profile hoặc nhận diện từ text (ví dụ: "chi cá nhân 50k" → scope personal).
+
+---
+
+### 🟡 LG-09: `classifierService` dùng loop từng từ — hiệu suất kém với description dài
+
+**File:** `classifier.js`, dòng 38–49
+
+```js
+const words = description.split(/\s+/).filter(w => w.length > 3);
+for (const word of words) {
+    const result = historicalStmt.get(scope, word); // N query cho N từ
+    ...
+}
+```
+
+Với mô tả 10 từ, hệ thống thực hiện 10 SQL query. Nên dùng `LIKE` kết hợp với `OR` trong 1 query hoặc Full-Text Search của SQLite.
+
+---
+
+### 🟢 LG-10: `aiService.suggestCategory` không validate `confidence` trả về từ AI
+
+**File:** `ai.js`, dòng 90–103
+
+```js
+const result = await aiService.suggestCategory(tx.description, categories);
+if (result) {
+    TransactionModel.update(tx.id, {
+        suggested_category_id: result.category_id,
+        confidence_score: result.confidence  // không kiểm tra range [0-1]
+    });
+}
+```
+
+AI có thể trả về `confidence: 1.5` hoặc `-0.2`. Nên thêm:
+
+```js
+const confidence = Math.min(1, Math.max(0, result.confidence ?? 0));
+```
+
+---
+
+## PHẦN 4 — QUẢN LÝ TIẾN TRÌNH & ĐỘ ỔN ĐỊNH
+
+### 🟠 LG-11: `aiManager.startServer()` không có timeout hoặc health-check
+
+**File:** `aiManager.js`, dòng 80–100
+
+Sau khi `spawn()`, không có cơ chế kiểm tra xem engine đã thực sự sẵn sàng chưa. Endpoint `/chat` có thể nhận request khi engine vẫn đang khởi động và trả về lỗi 503 không rõ ràng cho user.
+
+**Nên thêm:** Polling `/health` của llama-server sau khi spawn:
+```js
+async waitForEngine(timeoutMs = 30000) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+        try {
+            await fetch('http://127.0.0.1:1234/health');
+            return true; // Engine sẵn sàng
+        } catch { await new Promise(r => setTimeout(r, 1000)); }
+    }
+    return false;
+}
+```
+
+---
+
+### 🟠 LG-12: `aiManager.startServer()` auto-start không có guard trên non-Windows
+
+**File:** `server.js`, dòng 60–63; `aiManager.js`, dòng 82
+
+```js
+this.enginePath = path.join(this.binDir, 'llama-server.exe'); // hardcode .exe
+// ...
+if (specs.engineExists && specs.modelExists) {
+    aiManager.startServer(); // spawn .exe trên Linux/Mac → crash im lặng
+}
+```
+
+Nếu deploy lên Linux server (VPS, Docker), `spawn('llama-server.exe')` sẽ thất bại im lặng. Nên kiểm tra platform:
+
+```js
+const exeName = process.platform === 'win32' ? 'llama-server.exe' : 'llama-server';
+this.enginePath = path.join(this.binDir, exeName);
+```
+
+---
+
+### 🟡 LG-13: `analyze-all` chạy transaction DB đồng bộ có thể block event loop
+
+**File:** `ai.js`, dòng 287–326
+
+Hàm `db.transaction()` (better-sqlite3) chạy đồng bộ, xử lý **toàn bộ confirmed transactions** trong một lần. Nếu có hàng nghìn giao dịch, Node.js event loop sẽ bị block trong thời gian dài, ảnh hưởng mọi request khác.
+
+**Giải pháp:** Chia batch với `setImmediate` hoặc chỉ phân tích các giao dịch mới (`WHERE ai_explanation IS NULL`).
+
+---
+
+## BẢNG TỔNG HỢP ƯU TIÊN
+
+| ID | Loại | Mô tả | Mức độ | File |
+|---|---|---|---|---|
+| BM-01 | Bảo mật | `/re-analyze` không có auth | 🔴 Nghiêm trọng | ai.js |
+| BM-02 | Bảo mật | Telegram không có rate limit | 🔴 Nghiêm trọng | telegramService.js |
+| BM-03 | Bảo mật | Path injection qua `ai_storage_path` | 🔴 Nghiêm trọng | aiManager.js |
+| BM-04 | Bảo mật | CORS cho phép `null` origin | 🟠 Cao | server.js |
+| BM-05 | Bảo mật | Download URL chưa được validate | 🟠 Cao | aiManager.js |
+| BM-06 | Bảo mật | Log dữ liệu tài chính ra console | 🟡 Trung bình | telegramService.js, ai.js |
+| BM-07 | Bảo mật | Rate limit chung IP dễ lockout | 🟡 Trung bình | server.js |
+| LG-01 | Logic AI | `anomalyDetector.js` không được dùng | 🟠 Cao | ai.js |
+| LG-02 | Logic AI | Ngưỡng không nhất quán giữa 2 endpoint | 🟠 Cao | ai.js |
+| LG-03 | Logic AI | Income bị gán nhãn "Cảnh báo" | 🟠 Cao | ai.js |
+| LG-04 | Logic AI | `anomalyCount` đếm sai | 🟡 Trung bình | ai.js |
+| LG-05 | Logic AI | Hardcode năm 2025 trong query | 🟡 Trung bình | ai.js |
+| LG-06 | Logic AI | Không nhất quán giới hạn recentTxs | 🟢 Thấp | ai.js |
+| LG-07 | Logic Telegram | Regex parse số tiền dễ nhầm | 🟠 Cao | telegramService.js |
+| LG-08 | Logic Telegram | Scope hardcode `business` | 🟠 Cao | telegramService.js |
+| LG-09 | Logic Phân loại | N+1 query trong classifier | 🟡 Trung bình | classifier.js |
+| LG-10 | Logic AI | Không validate confidence từ AI | 🟢 Thấp | ai.js |
+| LG-11 | Độ ổn định | Engine không có health-check sau spawn | 🟠 Cao | aiManager.js |
+| LG-12 | Độ ổn định | `.exe` hardcode, crash trên Linux | 🟠 Cao | aiManager.js |
+| LG-13 | Độ ổn định | `analyze-all` block event loop | 🟡 Trung bình | ai.js |
+
+---
+
+## KHUYẾN NGHỊ THEO THỨ TỰ THỰC HIỆN
+
+**Sprint 1 — Khẩn cấp (bảo mật):**
+1. Thêm `auth.authenticate + auth.authorize('Admin')` vào `/re-analyze`
+2. Thêm rate limit cho Telegram bot
+3. Validate `ai_storage_path` trước khi dùng trong `spawn()`
+
+**Sprint 2 — Ổn định logic:**
+4. Tích hợp `anomalyDetector.js` vào cả 2 endpoint phân tích
+5. Tách `buildExplanation()` thành hàm dùng chung
+6. Sửa phát hiện income trong `/re-analyze`
+7. Fix `anomalyCount` query
+
+**Sprint 3 — Cải thiện:**
+8. Sửa hardcode năm và `.exe`
+9. Thêm health-check sau `spawn()`
+10. Tối ưu classifier tránh N+1 query
+
+---
+
+*Báo cáo được tạo tự động từ phân tích tĩnh mã nguồn. Khuyến nghị kiểm tra thêm bằng dynamic testing trước khi deploy production.*

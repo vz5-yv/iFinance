@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 
@@ -23,6 +23,19 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, '../frontend/pages/login.html'));
 
+  // Enable DevTools for debugging (F12 or Ctrl+Shift+I)
+  // mainWindow.setMenuBarVisibility(false);
+  // Menu.setApplicationMenu(null);
+
+  const { shell } = require('electron');
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://t.me/')) {
+      shell.openExternal(url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
+  });
+
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
   });
@@ -45,7 +58,7 @@ function startBackendServer() {
 
 app.whenReady().then(() => {
   startBackendServer();
-  
+
   setTimeout(() => {
     createWindow();
   }, 2000);
@@ -75,4 +88,13 @@ app.on('before-quit', () => {
 ipcMain.handle('navigate', (event, page) => {
   const pagePath = path.join(__dirname, '../frontend/pages', `${page}.html`);
   mainWindow.loadFile(pagePath);
+});
+
+const { dialog } = require('electron');
+ipcMain.handle('select-directory', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory']
+  });
+  if (result.canceled) return null;
+  return result.filePaths[0];
 });

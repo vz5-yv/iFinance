@@ -1,0 +1,58 @@
+# Báo Cáo Kiến Trúc & Thiết Kế Hệ Thống: iFinance
+
+Tài liệu này trình bày chi tiết về kiến trúc, các quyết định công nghệ và mô hình thiết kế của hệ thống **iFinance - Hệ thống quản lý thu chi nội bộ thông minh**. 
+
+---
+
+## 1. Kiến Trúc Tổng Thể (System Architecture)
+Hệ thống iFinance được thiết kế theo mô hình **Client-Server vận hành cục bộ (Local Desktop Architecture)** nhằm đảm bảo tính bảo mật dữ liệu tuyệt đối cho người dùng (không đưa dữ liệu tài chính lên Cloud).
+
+- **Frontend (Presentation Layer)**: Sử dụng **Electron** kết hợp với HTML/CSS/JavaScript thuần. Đóng vai trò như một lớp vỏ bọc giao diện, hiển thị thông tin và gửi yêu cầu (HTTP Requests) tới Backend cục bộ.
+- **Backend (API Layer)**: Được xây dựng bằng **Node.js và Express.js**. Xử lý toàn bộ logic nghiệp vụ, giao tiếp cơ sở dữ liệu và quản lý các tác vụ nền (Background jobs) như chạy engine AI.
+- **Database Layer**: Sử dụng **SQLite** (`better-sqlite3`), lưu trữ file vật lý [ifinance.db](file:///d:/tech_quang/iFinance/backend/database/ifinance.db) tại local. Giúp hệ thống gọn nhẹ, dễ dàng đóng gói cài đặt mà không yêu cầu user cài database server.
+
+---
+
+## 2. Thiết Kế Cơ Sở Dữ Liệu (Database Schema)
+Cơ sở dữ liệu được tổ chức chặt chẽ với các bảng chính chặn ràng buộc (Foreign Keys) để đảm bảo toàn vẹn dữ liệu:
+1. **users**: Lưu thông tin đăng nhập, phân quyền người dùng (`Admin`, `Accountant`, `Viewer`). Mật khẩu được mã hóa an toàn với thư viện `bcrypt`.
+2. **categories**: Phân loại danh mục thu/chi với scope (`personal`, `business`, `both`).
+3. **transactions**: Bảng cốt lõi lưu chi tiết giao dịch (số tiền, ngày, loại, nguồn, v.v.). Tích hợp các trường AI (suggested_category_id, confidence_score, ai_explanation) để lưu trữ kết quả phân loại tự động.
+4. **rules**: Lưu trữ các luật phân loại và cảnh báo bất thường tĩnh.
+5. **audit_logs**: Ghi vết (tracking) mọi thao tác nhạy cảm (Ai làm gì? Khi nào? IP nào?).
+6. **settings**: Lưu các cấu hình hệ thống (như đường dẫn lưu trữ model AI).
+*Có tích hợp đánh index cho các trường phân tích ([date](file:///d:/tech_quang/iFinance/backend/services/aiManager.js#28-48), `type`, `category_id`) nhằm tăng tốc truy vấn thống kê.*
+
+---
+
+## 3. Thiết Kế Các Module Thông Minh (Smart Modules)
+
+### A. Tích hợp AI (Local LLM)
+Hệ thống có cơ chế chạy Trí tuệ Nhân tạo **offline hoàn toàn** trên phần cứng của người dùng:
+- **Công cụ**: Sử dụng `llama.cpp` (bản build từ ggml-org) chạy như một server độc lập trên cổng `1234`.
+- **Model sử dụng**: `Qwen2.5-1.5B-Instruct-GGUF` (Mô hình LLM dung lượng 1.5 tỷ tham số tối ưu rất tốt cho phần cứng yếu, có khả năng suy luận logic).
+- **Cơ chế hoạt động (AIManager)**: Tự động tải Engine và Model. Kiểm tra phần cứng máy tính (RAM, VRAM của GPU tốt nhất, dung lượng Disk). Cung cấp API trực tiếp tới engine để phân tích các giao dịch chưa phân loại hoặc sinh giải thích (ai_explanation). WebSocket (`socket.io`) được dùng để realtime báo cáo tiến độ tải Model về UI.
+
+### B. Detect Bất Thường (Anomaly Detection)
+Thuật toán phân tích bất thường không phụ thuộc vào LLM mà dựa trên **phân tích thống kê (Statistical Analysis)**:
+- Logic sử dụng `Mean` (Giá trị trung bình) và `Standard Deviation` (Độ lệch chuẩn) của các lịch sử giao dịch.
+- **Rules được định nghĩa**: 
+   - Nếu `Amount > Mean + (2 * StdDev)`: Đánh dấu là bất thường do cao hơn mức trung bình một cách có ý nghĩa.
+   - Nếu `Amount > Mean * 3`: Đánh dấu là đặc biệt bất thường vì gấp 3 lần thu chi bình thường.
+
+---
+
+## 4. Thiết Kế Bảo Mật & Xác Thực (Security Design)
+Mặc dù là ứng dụng nội bộ, hệ thống được thiết kế với chuẩn bảo mật Server chuyên nghiệp:
+- **Xác thực Identity**: Sử dụng **JWT (JSON Web Token)** để cấp và chứng thực quyền truy cập sau khi login.
+- **RBAC (Role-Based Access Control)**: Middleware chặn các endpoint theo quyền của user (ví dụ: chỉ Admin mới vào được /settings).
+- **Network Security**:
+   - `Helmet`: Ngăn ngừa các dạng tấn công cơ bản bằng cách che giấu các HTTP Headers dễ bị khai thác.
+   - `CORS`: Cấu hình chặn chặt chẽ, chỉ cho phép Request đến từ Frontend của Electron (`file://`) hoặc `http://localhost`.
+   - `Rate Limiter`: Chống spam gọi API và brute-force mật khẩu (Giới hạn tối đa 5000 request chung / 15 phút, nhưng chỉ cho phép 15 request đăng nhập / 15 phút).
+- **Audit Logs**: Mọi thay đổi dữ liệu (insert/update/delete) đều triggers ghi log vào Database tự động. Không thể xóa sửa lịch sử log bằng UI.
+
+---
+
+## Tổng Kết
+iFinance không chỉ là một ứng dụng CRUD thu chi đơn giản, mà là sự kết hợp phức tạp giữa mô hình Local App với nền tảng Web Technology, tích hợp AI Local tự host (LLM Server logic), và thuật toán xử lý dữ liệu chuẩn chỉnh, đáp ứng tiêu chuẩn của một đồ án/sản phẩm phần mềm thực tế chất lượng cao.

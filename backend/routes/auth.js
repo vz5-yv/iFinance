@@ -99,4 +99,65 @@ router.get('/users',
     }
 );
 
+router.post('/telegram-chat-id',
+    auth.authenticate,
+    validate(schemas.updateTelegramChatId),
+    (req, res) => {
+        try {
+            const { telegram_chat_id } = req.body;
+            UserModel.updateChatId(req.user.id, telegram_chat_id);
+
+            AuditLogModel.log(
+                req.user.id,
+                'UPDATE_TELEGRAM_CHAT_ID',
+                'user',
+                req.user.id,
+                { telegram_chat_id },
+                req.ip
+            );
+
+            res.json({ message: 'Telegram Chat ID updated successfully' });
+        } catch (error) {
+            console.error('Update telegram chat ID error:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+);
+
+router.post('/change-password',
+    auth.authenticate,
+    validate(schemas.changePassword),
+    async (req, res) => {
+        try {
+            const { oldPassword, newPassword } = req.body;
+            const user = UserModel.findById(req.user.id);
+
+            // Get full user with password hash
+            const fullUser = UserModel.findByUsername(user.username);
+            const isValid = await auth.comparePassword(oldPassword, fullUser.password_hash);
+
+            if (!isValid) {
+                return res.status(400).json({ error: 'Mật khẩu cũ không chính xác' });
+            }
+
+            const newHash = await auth.hashPassword(newPassword);
+            UserModel.updatePassword(req.user.id, newHash);
+
+            AuditLogModel.log(
+                req.user.id,
+                'CHANGE_PASSWORD',
+                'user',
+                req.user.id,
+                null,
+                req.ip
+            );
+
+            res.json({ message: 'Đổi mật khẩu thành công' });
+        } catch (error) {
+            console.error('Change password error:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+);
+
 module.exports = router;

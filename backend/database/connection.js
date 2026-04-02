@@ -9,7 +9,9 @@ if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
 }
 
-const db = new Database(dbPath, { verbose: console.log });
+const db = new Database(dbPath);
+
+console.log('Connecting to database at:', dbPath);
 
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');

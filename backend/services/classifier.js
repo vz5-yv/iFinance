@@ -38,23 +38,31 @@ class ClassifierService {
       LIMIT 1
     `);
 
+        // LG-09: single query with OR conditions instead of N separate queries
         const words = description.split(/\s+/).filter(w => w.length > 3);
         let bestMatch = null;
-        let maxFrequency = 0;
 
-        for (const word of words) {
-            const result = historicalStmt.get(scope, word);
-            if (result && result.frequency > maxFrequency) {
-                bestMatch = result;
-                maxFrequency = result.frequency;
-            }
+        if (words.length > 0) {
+            const conditions = words.map(() => "LOWER(t.description) LIKE '%' || LOWER(?) || '%'").join(' OR ');
+            const batchStmt = db.prepare(`
+                SELECT t.category_id, c.name, COUNT(*) as frequency
+                FROM transactions t
+                JOIN categories c ON t.category_id = c.id
+                WHERE t.scope = ? AND t.status = 'confirmed' AND t.category_id IS NOT NULL
+                  AND (${conditions})
+                GROUP BY t.category_id
+                ORDER BY frequency DESC
+                LIMIT 1
+            `);
+            const result = batchStmt.get(scope, ...words);
+            if (result) bestMatch = result;
         }
 
         if (bestMatch) {
             return {
                 category_id: bestMatch.category_id,
                 category_name: bestMatch.name,
-                confidence: Math.min(0.7, 0.5 + (maxFrequency * 0.05))
+                confidence: Math.min(0.7, 0.5 + (bestMatch.frequency * 0.05))
             };
         }
 

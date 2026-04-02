@@ -1,6 +1,6 @@
 {
   "name": "ifinance",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Intelligent Internal Income and Expense Management System",
   "main": "electron/main.js",
   "scripts": {
@@ -12,26 +12,39 @@
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux"
   },
-  "keywords": ["finance", "expense", "income", "management", "electron"],
-  "author": "iFinance Team",
+  "keywords": [
+    "finance",
+    "expense",
+    "income",
+    "management",
+    "electron"
+  ],
+  "author": "vzdev",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "jsonwebtoken": "^9.0.2",
-    "bcrypt": "^5.1.1",
-    "better-sqlite3": "^9.2.2",
     "@journeyapps/sqlcipher": "^5.3.1",
+    "adm-zip": "^0.5.16",
+    "axios": "^1.13.6",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^9.2.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
-    "dotenv": "^16.3.1",
-    "winston": "^3.11.0",
-    "joi": "^17.11.0"
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "node-telegram-bot-api": "^0.67.0",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "systeminformation": "^5.31.5",
+    "winston": "^3.11.0"
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "electron": "^28.1.0",
     "electron-builder": "^24.9.1",
-    "concurrently": "^8.2.2",
+    "electron-rebuild": "^3.2.9",
     "wait-on": "^7.2.0"
   },
   "build": {
@@ -48,15 +61,22 @@
       "package.json"
     ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "frontend/assets/icon.ico"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "icon": "frontend/assets/icon.icns"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "icon": "frontend/assets/icon.png"
     }
   }

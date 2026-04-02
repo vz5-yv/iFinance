@@ -2,166 +2,295 @@
 <html lang="vi">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Báo cáo - iFinance</title>
-    <link rel="stylesheet" href="../css/main.css">
-    <style>
-        .layout {
-            display: flex;
-            min-height: 100vh;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Báo cáo - iFinance</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    .cat-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-        .sidebar {
-            width: 250px;
-            background: var(--dark-bg);
-            padding: 20px;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-        }
+    .cat-bar-track {
+      flex: 1;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 100px;
+      overflow: hidden;
+    }
 
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 32px;
-            text-align: center;
-        }
+    .cat-bar-fill {
+      height: 100%;
+      border-radius: 100px;
+      width: 0%;
+      transition: width 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-        .nav-menu {
-            list-style: none;
-        }
-
-        .nav-item {
-            margin-bottom: 8px;
-        }
-
-        .nav-link {
-            display: block;
-            padding: 12px 16px;
-            color: var(--dark-text-secondary);
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 32px;
-            background: var(--dark-bg-secondary);
-        }
-    </style>
+    .quick-btn.active {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(99, 102, 241, 0.1)) !important;
+      color: #a5b4fc !important;
+      border-color: rgba(99, 102, 241, 0.4) !important;
+    }
+  </style>
 </head>
 
 <body>
-    <div class="layout">
-        <aside class="sidebar">
-            <div class="logo">iFinance</div>
-            <ul class="nav-menu">
-                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('dashboard')">📊 Dashboard</a></li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('transactions')">💳 Giao dịch</a>
-                </li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('pending')">⏳ Chờ xác nhận</a></li>
-                <li class="nav-item"><a href="#" class="nav-link active" onclick="loadPage('reports')">📈 Báo cáo</a>
-                </li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="loadPage('settings')">⚙️ Cài đặt</a></li>
-                <li class="nav-item" style="margin-top: 32px;"><a href="#" class="nav-link" onclick="logout()">🚪 Đăng
-                        xuất</a></li>
-            </ul>
-        </aside>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-icon"><img src="../assets/icon.png" alt="logo"></div>
+        <span class="logo-text">iFinance</span>
+      </div>
+      <div class="nav-section-label">Menu chính</div>
+      <ul class="nav-menu">
+        <li class="nav-item"><a class="nav-link" onclick="nav('dashboard')"><span
+              class="nav-icon">📊</span>Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="nav('transactions')"><span class="nav-icon">💳</span>Giao
+            dịch</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="nav('pending')"><span class="nav-icon">⏳</span>Chờ xác
+            nhận</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="nav('reports')"><span class="nav-icon">📈</span>Báo
+            cáo</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="nav('ai-studio')"><span class="nav-icon">🤖</span>AI
+            Studio</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="nav('settings')"><span class="nav-icon">⚙️</span>Cài đặt</a>
+        </li>
+      </ul>
+      <div class="sidebar-footer">
+        <div class="user-chip" style="margin-bottom:10px;justify-content:center;">
+          <div class="avatar" id="avatarText">A</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;" id="sidebarUsername"></div>
+            <div style="font-size:11px;color:var(--text-muted);" id="sidebarRole"></div>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;" onclick="logout()">🚪 Đăng xuất</button>
+      </div>
+    </aside>
 
-        <main class="main-content">
-            <h1 style="margin-bottom: 32px;">Báo cáo và thống kê</h1>
+    <main class="main-content">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Báo cáo & Thống kê</div>
+          <div class="page-subtitle">Phân tích thu chi theo thời gian</div>
+        </div>
+      </div>
+      <div class="page-body">
+        <!-- Date filter -->
+        <div class="filters" style="margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:13px;">🗓 Từ</div>
+          <input type="date" id="startDate">
+          <div style="color:var(--text-secondary);font-size:13px;">đến</div>
+          <input type="date" id="endDate">
+          <select id="scopeFilter" onchange="loadReports()">
+            <option value="business">🏢 Công ty</option>
+            <option value="">🗺 Tất cả phạm vi</option>
+            <option value="personal">👤 Cá nhân</option>
+          </select>
+          <select id="categoryFilter" onchange="loadReports()">
+            <option value="">📂 Tất cả danh mục</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="loadReports()">Xem báo cáo</button>
+          <button class="btn btn-secondary btn-sm quick-btn" onclick="setPreset('thisMonth',this)">Tháng này</button>
+          <button class="btn btn-secondary btn-sm quick-btn" onclick="setPreset('lastMonth',this)">Tháng trước</button>
+          <button class="btn btn-secondary btn-sm quick-btn" onclick="setPreset(7,this)">7 ngày</button>
+          <button class="btn btn-secondary btn-sm quick-btn" onclick="setPreset(30,this)">30 ngày</button>
+        </div>
 
-            <div class="card">
-                <div class="card-header">Khoảng thời gian</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 200px; gap: 16px;">
-                    <input type="date" id="startDate">
-                    <input type="date" id="endDate">
-                    <button class="btn-primary" onclick="loadReports()">Xem báo cáo</button>
+        <!-- Summary stats -->
+        <div class="stats-grid" id="statsGrid" style="margin-bottom:20px;">
+          <div class="stat-card income">
+            <div class="stat-icon">💰</div>
+            <div class="stat-label">Tổng thu</div>
+            <div class="stat-value" id="totalIncome">—</div>
+          </div>
+          <div class="stat-card expense">
+            <div class="stat-icon">💸</div>
+            <div class="stat-label">Tổng chi</div>
+            <div class="stat-value" id="totalExpense">—</div>
+          </div>
+          <div class="stat-card balance">
+            <div class="stat-icon">⚖️</div>
+            <div class="stat-label">Số dư</div>
+            <div class="stat-value" id="balance">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-label">Tỷ lệ tiết kiệm</div>
+            <div class="stat-value" id="saveRate">—</div>
+          </div>
+        </div>
+
+        <!-- Category breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Thống kê theo danh mục</span>
+            <div class="tabs" style="margin:0;">
+              <button class="tab-btn active" id="tabAll" onclick="setTab('all')">Tất cả</button>
+              <button class="tab-btn" id="tabIncome" onclick="setTab('income')">Thu</button>
+              <button class="tab-btn" id="tabExpense" onclick="setTab('expense')">Chi</button>
+            </div>
+          </div>
+          <div id="categoryStats">
+            <div class="loader"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="../js/api.js"></script>
+  <script>
+    const user = getCurrentUser();
+    if (!user) window.electronAPI.navigate('login');
+    document.getElementById('sidebarUsername').textContent = user.username;
+    document.getElementById('sidebarRole').textContent = user.role;
+    document.getElementById('avatarText').textContent = user.username[0].toUpperCase();
+    function nav(page) { window.electronAPI.navigate(page); }
+    function logout() { api.clearToken(); window.electronAPI.navigate('login'); }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const firstDayStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    document.getElementById('startDate').value = firstDayStr;
+    document.getElementById('endDate').value = todayStr;
+
+    // Load categories for filter
+    (async () => {
+      const sel = document.getElementById('categoryFilter');
+      sel.innerHTML = '<option value="">⏳ Đang tải danh mục...</option>';
+      try {
+        const data = await api.getCategories();
+        const cats = data.categories || [];
+        sel.innerHTML = '<option value="">📂 Tất cả danh mục</option>';
+        cats.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = `${c.type === 'income' ? '💰' : '💸'} ${c.name}`;
+          sel.appendChild(opt);
+        });
+      } catch (e) {
+        sel.innerHTML = '<option value="">❌ Lỗi tải danh mục</option>';
+      }
+    })();
+
+    function setPreset(p, btn) {
+      const now = new Date();
+      let start, end;
+
+      if (p === 'thisMonth') {
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        end = now;
+      } else if (p === 'lastMonth') {
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        end = new Date(now.getFullYear(), now.getMonth(), 0);
+      } else if (typeof p === 'number') {
+        start = new Date(Date.now() - p * 24 * 60 * 60 * 1000);
+        end = now;
+      }
+
+      document.getElementById('startDate').value = start.toISOString().split('T')[0];
+      document.getElementById('endDate').value = end.toISOString().split('T')[0];
+
+      document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      loadReports();
+    }
+
+    let allCatStats = [];
+    let currentTab = 'all';
+
+    function setTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+      renderCatStats();
+    }
+
+    async function loadReports() {
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const scope = document.getElementById('scopeFilter').value;
+      const categoryId = document.getElementById('categoryFilter').value;
+
+      try {
+        const params = { start_date: startDate, end_date: endDate };
+        if (categoryId) params.category_id = categoryId;
+        if (scope) params.scope = scope;
+
+        const data = await api.getStats(params);
+        const stats = data.stats || [];
+
+        // Filter by selected scope
+        const filtered = scope ? stats.filter(r => r.scope === scope || r.scope === 'both') : stats;
+        const income = filtered.reduce((s, r) => r.type === 'income' ? s + r.total : s, 0);
+        const expense = filtered.reduce((s, r) => r.type === 'expense' ? s + r.total : s, 0);
+        const balance = income - expense;
+        const saveRate = income > 0 ? ((balance / income) * 100).toFixed(1) : '0';
+
+        document.getElementById('totalIncome').textContent = formatCurrency(income);
+        document.getElementById('totalExpense').textContent = formatCurrency(expense);
+        const balEl = document.getElementById('balance');
+        balEl.textContent = formatCurrency(balance);
+        balEl.style.color = balance >= 0 ? 'var(--income)' : 'var(--expense)';
+        document.getElementById('saveRate').textContent = saveRate + '%';
+
+        // Category stats: filter by scope too
+        allCatStats = (data.categoryStats || []).filter(c => !scope || c.scope === scope || c.scope === 'both');
+        renderCatStats();
+      } catch (e) {
+        showToast('Lỗi tải báo cáo', 'danger');
+      }
+    }
+
+    function renderCatStats() {
+      const filtered = currentTab === 'all' ? allCatStats : allCatStats.filter(c => c.type === currentTab);
+      const el = document.getElementById('categoryStats');
+      if (!filtered.length) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Không có dữ liệu</div></div>';
+        return;
+      }
+      const maxTotal = Math.max(...filtered.map(c => c.total));
+      el.innerHTML = `
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Danh mục</th><th>Loại</th><th>Số GD</th><th>TB/GD</th><th style="text-align:right">Tổng tiền</th><th style="width:180px">Tỷ trọng</th></tr></thead>
+          <tbody>
+          ${filtered.sort((a, b) => b.total - a.total).map(c => {
+        const pct = maxTotal > 0 ? (c.total / maxTotal * 100).toFixed(0) : 0;
+        const color = c.type === 'income' ? 'var(--income)' : 'var(--expense)';
+        return `<tr>
+              <td style="font-weight:500;color:var(--text-primary);">${c.name}</td>
+              <td>${c.type === 'income' ? '<span class="badge badge-income">Thu</span>' : '<span class="badge badge-expense">Chi</span>'}</td>
+              <td>${c.count}</td>
+              <td>${formatCurrency(c.average)}</td>
+              <td style="text-align:right;font-weight:600;color:${color}">${formatCurrency(c.total)}</td>
+              <td>
+                <div class="cat-bar-wrap">
+                  <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+                  <span style="font-size:11px;color:var(--text-muted);width:32px;text-align:right;">${pct}%</span>
                 </div>
-            </div>
+              </td>
+            </tr>`;
+      }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    }
 
-            <div class="stats-grid" id="statsGrid"></div>
+    function showToast(msg, type = 'info') {
+      const c = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.textContent = msg;
+      c.appendChild(t);
+      setTimeout(() => t.remove(), 3200);
+    }
 
-            <div class="card">
-                <div class="card-header">Thống kê theo danh mục</div>
-                <div id="categoryStats"></div>
-            </div>
-        </main>
-    </div>
-
-    <script src="../js/api.js"></script>
-    <script>
-        const user = getCurrentUser();
-        if (!user) window.electronAPI.navigate('login');
-        function loadPage(page) { window.electronAPI.navigate(page); }
-        function logout() { api.clearToken(); window.electronAPI.navigate('login'); }
-
-        const today = new Date().toISOString().split('T')[0];
-        const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        document.getElementById('startDate').value = monthAgo;
-        document.getElementById('endDate').value = today;
-
-        async function loadReports() {
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-
-            try {
-                const data = await api.getStats({ start_date: startDate, end_date: endDate });
-                displayStats(data);
-            } catch (error) {
-                showToast('Lỗi tải báo cáo', 'danger');
-            }
-        }
-
-        function displayStats(data) {
-            const statsGrid = document.getElementById('statsGrid');
-            const income = data.stats.find(s => s.type === 'income')?.total || 0;
-            const expense = data.stats.find(s => s.type === 'expense')?.total || 0;
-            const balance = income - expense;
-
-            statsGrid.innerHTML = `
-        <div class="stat-card income">
-          <div class="stat-label">Tổng thu</div>
-          <div class="stat-value">${formatCurrency(income)}</div>
-        </div>
-        <div class="stat-card expense">
-          <div class="stat-label">Tổng chi</div>
-          <div class="stat-value">${formatCurrency(expense)}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Số dư</div>
-          <div class="stat-value">${formatCurrency(balance)}</div>
-        </div>
-      `;
-
-            const categoryContainer = document.getElementById('categoryStats');
-            if (data.categoryStats.length === 0) {
-                categoryContainer.innerHTML = '<p style="text-align: center; color: var(--dark-text-secondary);">Chưa có dữ liệu</p>';
-                return;
-            }
-
-            categoryContainer.innerHTML = `<table><thead><tr><th>Danh mục</th><th>Loại</th><th>Tổng tiền</th><th>Số giao dịch</th><th>Trung bình</th></tr></thead><tbody>${data.categoryStats.map(c => `
-        <tr>
-          <td>${c.name}</td>
-          <td><span class="badge ${c.type === 'income' ? 'badge-success' : 'badge-warning'}">${c.type === 'income' ? 'Thu' : 'Chi'}</span></td>
-          <td>${formatCurrency(c.total)}</td>
-          <td>${c.count}</td>
-          <td>${formatCurrency(c.average)}</td>
-        </tr>
-      `).join('')}</tbody></table>`;
-        }
-
-        loadReports();
-    </script>
+    loadReports();
+  </script>
 </body>
 
 </html>

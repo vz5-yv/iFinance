@@ -6,3 +6,16 @@ backend/database/*.db
 backend/database/*.db-*
 .DS_Store
 Thumbs.db
+
+# Binaries and Large Files
+*.exe
+*.asar
+*.gguf
+*.zip
+backend/bin/
+backend/models_bin/
+backendzip/
+iFinance/
+release/
+build/
+out/
